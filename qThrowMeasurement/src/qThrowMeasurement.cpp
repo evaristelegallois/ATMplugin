@@ -42,7 +42,7 @@
 //  - constructor should mainly be used to initialize actions and other members
 qThrowMeasurement::qThrowMeasurement( QObject *parent )
 	: QObject( parent )
-        , ccStdPluginInterface( ":/CC/plugin/qThrowMeasurement/info.json" )
+    , ccStdPluginInterface( ":/CC/plugin/qThrowMeasurement/info.json" )
 	, m_action( nullptr )
 {
 }
@@ -68,7 +68,12 @@ void qThrowMeasurement::onNewSelection( const ccHObject::Container &selectedEnti
 	//	}
 	
 	// For example - only enable our action if something is selected.
-	m_action->setEnabled( !selectedEntities.empty() );
+	if (m_action)
+	{
+		//classification: only one point cloud
+		m_action->setEnabled(selectedEntities.size() == 1 && selectedEntities[0]->isA(CC_TYPES::POLY_LINE));
+	}
+
 }
 
 // This method returns all the 'actions' your plugin can perform.

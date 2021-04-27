@@ -47,42 +47,42 @@
       <item row="0" column="0">
        <layout class="QHBoxLayout" name="horizontalLayout">
         <item>
-         <widget class="QLabel" name="label_2">
+         <widget class="QLabel" name="angleLabel">
           <property name="text">
            <string>Angle (between sections and selected polyline, °)</string>
           </property>
          </widget>
         </item>
         <item>
-         <widget class="QDoubleSpinBox" name="doubleSpinBox"/>
+         <widget class="QDoubleSpinBox" name="angle"/>
         </item>
        </layout>
       </item>
       <item row="2" column="0">
        <layout class="QHBoxLayout" name="horizontalLayout_2">
         <item>
-         <widget class="QLabel" name="label_3">
+         <widget class="QLabel" name="secLengthLabel">
           <property name="text">
            <string>Section Length (m)</string>
           </property>
          </widget>
         </item>
         <item>
-         <widget class="QSpinBox" name="spinBox"/>
+         <widget class="QSpinBox" name="secLength"/>
         </item>
        </layout>
       </item>
       <item row="1" column="0">
        <layout class="QHBoxLayout" name="horizontalLayout_3">
         <item>
-         <widget class="QLabel" name="label_4">
+         <widget class="QLabel" name="stepLabel">
           <property name="text">
            <string>Step (distance between sections, m)</string>
           </property>
          </widget>
         </item>
         <item>
-         <widget class="QSpinBox" name="spinBox_2"/>
+         <widget class="QSpinBox" name="step"/>
         </item>
        </layout>
       </item>
@@ -92,5 +92,38 @@
   </layout>
  </widget>
  <resources/>
- <connections/>
+ <connections>
+  <connection>
+   <sender>buttonBox</sender>
+   <signal>accepted()</signal>
+   <receiver>ATMDialog</receiver>
+   <slot>accept()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>296</x>
+     <y>149</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>199</x>
+     <y>89</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>buttonBox</sender>
+   <signal>rejected()</signal>
+   <receiver>ATMDialog</receiver>
+   <slot>reject()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>296</x>
+     <y>149</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>199</x>
+     <y>89</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
 </ui>

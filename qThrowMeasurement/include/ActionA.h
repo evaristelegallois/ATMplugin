@@ -2,6 +2,12 @@
 
 #pragma once
 
+//qCC
+#include <ccStdPluginInterface.h>
+
+//qCC_db
+#include <ccHObject.h>
+
 class ccMainAppInterface;
 
 namespace Example

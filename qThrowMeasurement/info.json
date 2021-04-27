@@ -1,7 +1,7 @@
 {
 	"type": "Standard",
 	"name": "Automatic Throw Measurement (Standard Plugin)",
-	"icon": ":/CC/plugin/qThrowMeasurement/images/icon.png",
+        "icon": ":/CC/plugin/qThrowMeasurement/images/icon.png",
 	"description": "qThrowMeasurement allows the user to automatically compute cumulative geological displacement by making multiple sections along a selected polyline and computing the throw measurment for each.",
 	"authors": [
 		{
