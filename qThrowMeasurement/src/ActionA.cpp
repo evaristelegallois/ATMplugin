@@ -3,41 +3,25 @@
 
 //qCC_db
 #include <ccHObjectCaster.h>
+#include <ccGenericPointCloud.h>
+#include <ccPointCloud.h>
+#include <ccPolyline.h>
 
 //local
 #include "ATMDialog.h"
+#include "ActionA.h"
 
-namespace Example
+/*
+ActionA::ActionA(QWidget* parent)
+	: ccOverlayDialog(parent)
+	, m_UI(new Ui::ATMDialog)
 {
-	// This is an example of an action's method called when the corresponding action
-	// is triggered (i.e. the corresponding icon or menu entry is clicked in CC's
-	// main interface). You can access most of CC's components (database,
-	// 3D views, console, etc.) via the 'appInterface' variable.
-	void performActionA( ccMainAppInterface *appInterface )
-	{
-		if ( appInterface == nullptr )
-		{
-			// The application interface should have already been initialized when the plugin is loaded
-			Q_ASSERT( false );
-			
-			return;
-		}
-		
-		/*** HERE STARTS THE ACTION ***/
-	
-		// Put your code here
-		// --> you may want to start by asking for parameters (with a custom dialog, etc.)
-	
-		const ccHObject::Container& selectedEntities = appInterface->getSelectedEntities();
-		ccPolyline* polyline = ccHObjectCaster::ToPolyline(selectedEntities[0]);
+	m_UI->setupUi(this);
+}
+*/
 
-		//display dialog
-		ATMDialog atmDlg(polyline, appInterface);
-		if (!atmDlg.exec())
-		{
-			//process cancelled by the user
-			return;
-		}
+
+
 
 		/*
 		// This is how you can output messages
@@ -52,5 +36,3 @@ namespace Example
 		*/
 
 		/*** HERE ENDS THE ACTION ***/
-	}
-}

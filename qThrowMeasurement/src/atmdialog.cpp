@@ -10,21 +10,58 @@
 //Qt
 #include <QSettings>
 #include <QMainWindow>
-#include <QComboBox>
-#include <QFileInfo>
-#include <QFileDialog>
-#include <QPushButton>
 #include <QApplication>
-#include <QThread>
+#include <QDebug>
 
 
 ATMDialog::ATMDialog(ccPolyline* polyline, ccMainAppInterface* app) :
     QDialog(app ? app->getMainWindow() : nullptr),
-    Ui::ATMDialog()
+    Ui::ATMDialog(),
+	app(app)
 {
     setupUi(this);
+
+	connect(step, static_cast<void (QDoubleSpinBox::*)(double)> (&QDoubleSpinBox::valueChanged), this, &ATMDialog::onStepChanged);
 }
 
+void ATMDialog::setPathLength(double l)
+{
+	m_pathLength = l;
+	step->setValue(l / 9);
+	secLength->setValue(l / 5);
+
+	qDebug() << "length" << m_pathLength;
+	qDebug() << "step" << step->value();
+}
+
+void ATMDialog::setGenerationStep(double s)
+{
+	step->setValue(s);
+}
+
+void ATMDialog::setSectionsWidth(double w)
+{
+	secLength->setValue(w);
+}
+
+double ATMDialog::getGenerationStep() const
+{
+	return step->value();
+}
+
+double ATMDialog::getSectionsWidth() const
+{
+	return secLength->value();
+}
+
+void ATMDialog::onStepChanged(double step)
+{
+	if (step < 0)
+		return;
+
+	unsigned count = step < 1.0e-6 ? 1 : 1 + static_cast<unsigned>(std::floor(m_pathLength / step));
+	//sectionCountLineEdit->setText(QString::number(count));
+}
 /*
 ATMDialog::~ATMDialog()
 {

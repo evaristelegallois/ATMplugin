@@ -19,6 +19,27 @@ public:
     //! Saves parameters to persistent settings
     void saveParamsToPersistentSettings();
 
+	//! Sets the path legnth
+	void setPathLength(double l);
+
+	//! Sets the generation step
+	void setGenerationStep(double s);
+	//! Sets he sections width
+	void setSectionsWidth(double w);
+
+	//! Returns the generation step
+	double getGenerationStep() const;
+	//! Returns the sections width
+	double getSectionsWidth() const;
+
+protected:
+	void onStepChanged(double);
+
+protected:
+
+	//! Path length
+	double m_pathLength;
+	ccMainAppInterface* app;
 /*
 private:
     Ui::ATMDialog *ui;

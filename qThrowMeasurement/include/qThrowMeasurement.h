@@ -55,11 +55,118 @@ public:
 	void onNewSelection( const ccHObject::Container &selectedEntities ) override;
 	QList<QAction *> getActions() override;
 
+protected:
+
+	//! Associated (MDI) window
+	ccGLWindow* m_associatedWin;
+
+	double angle; //to compute non-ortho sections as well
+
+	void createOrthoSections(ccMainAppInterface* appInterface);
+	void extractPointsFromSections();
+
+	//! Convert one or several ReferenceCloud instances to a single cloud and add it to the main DB
+	bool extractSectionToCloud(const std::vector<CCCoreLib::ReferenceCloud*>& refClouds,
+		unsigned sectionIndex,
+		bool& cloudGenerated);
+
+	//! Extract the envelope from a set of 2D points and add it to the main DB
+	bool extractSectionToEnvelope(const ccPolyline* originalSection,
+		const ccPointCloud* originalSectionCloud,
+		ccPointCloud* unrolledSectionCloud, //'2D' cloud with Z = 0
+		unsigned sectionIndex,
+		ccEnvelopeExtractor::EnvelopeType type,
+		PointCoordinateType maxEdgeLength,
+		bool multiPass,
+		bool splitEnvelope,
+		bool& envelopeGenerated,
+		bool visualDebugMode = false);
+
+protected:
+
+	//! Creates (if necessary) and returns a group to store entities in the main DB
+	ccHObject* getSectionExportGroup(unsigned& defaultGroupID, const QString& defaultName);
+
+	//! Imported entity
+	template<class EntityType> struct ImportedEntity
+	{
+		//! Default constructor
+		ImportedEntity()
+			: entity(0)
+			, originalDisplay(nullptr)
+			, isInDB(false)
+			, backupColorShown(false)
+			, backupWidth(1)
+		{}
+
+		//! Copy constructor
+		ImportedEntity(const ImportedEntity& section)
+			: entity(section.entity)
+			, originalDisplay(section.originalDisplay)
+			, isInDB(section.isInDB)
+			, backupColorShown(section.backupColorShown)
+			, backupWidth(section.backupWidth)
+		{
+			backupColor = section.backupColor;
+		}
+
+		//! Constructor from an entity
+		ImportedEntity(EntityType* e, bool alreadyInDB)
+			: entity(e)
+			, originalDisplay(e->getDisplay())
+			, isInDB(alreadyInDB)
+		{
+			//specific case: polylines
+			if (e->isA(CC_TYPES::POLY_LINE))
+			{
+				ccPolyline* poly = reinterpret_cast<ccPolyline*>(e);
+				//backup color
+				backupColor = poly->getColor();
+				backupColorShown = poly->colorsShown();
+				//backup thickness
+				backupWidth = poly->getWidth();
+			}
+		}
+
+		bool operator ==(const ImportedEntity& ie) { return entity == ie.entity; }
+
+		EntityType* entity;
+		ccGenericGLDisplay* originalDisplay;
+		bool isInDB;
+
+		//backup info (for polylines only)
+		ccColor::Rgb backupColor;
+		bool backupColorShown;
+		PointCoordinateType backupWidth;
+	};
+
+	//! Section
+	using Section = ImportedEntity<ccPolyline>;
+
+	//! Cloud
+	using Cloud = ImportedEntity<ccGenericPointCloud>;
+
+	//! Type of the pool of active sections
+	using SectionPool = QList<Section>;
+
+	//! Type of the pool of clouds
+	using CloudPool = QList<Cloud>;
+
 private:
 	//! Default action
 	/** You can add as many actions as you want in a plugin.
 		Each action will correspond to an icon in the dedicated
 		toolbar and an entry in the plugin menu.
 	**/
-	QAction* m_action;
+	QAction* sectionExtraction;
+
+	//! Pool of active sections
+	SectionPool m_sections;
+
+	//! Selected polyline (if any)
+	Section* m_selectedPoly;
+
+	//! Pool of clouds
+	CloudPool m_clouds;
+
 };

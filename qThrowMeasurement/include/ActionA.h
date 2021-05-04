@@ -2,6 +2,10 @@
 
 #pragma once
 
+//Local
+#include "ccOverlayDialog.h"
+#include "ATMDialog.h"
+
 //qCC
 #include <ccStdPluginInterface.h>
 
@@ -10,7 +14,23 @@
 
 class ccMainAppInterface;
 
-namespace Example
+namespace Ui
 {
-	void	performActionA( ccMainAppInterface *appInterface );
+	class ATMDialog;
 }
+
+//! Section extraction tool
+class ActionA
+{
+
+public:
+	//! Default constructor
+	//explicit ActionA(QWidget* parent);
+	//void createOrthoSections(ccMainAppInterface* appInterface);
+
+
+private: //members
+
+	//! Associated UI
+	Ui::ATMDialog* m_UI;
+};

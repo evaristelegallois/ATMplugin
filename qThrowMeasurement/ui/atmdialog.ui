@@ -68,7 +68,7 @@
          </widget>
         </item>
         <item>
-         <widget class="QSpinBox" name="secLength"/>
+         <widget class="QDoubleSpinBox" name="secLength"/>
         </item>
        </layout>
       </item>
@@ -82,7 +82,7 @@
          </widget>
         </item>
         <item>
-         <widget class="QSpinBox" name="step"/>
+         <widget class="QDoubleSpinBox" name="step"/>
         </item>
        </layout>
       </item>
