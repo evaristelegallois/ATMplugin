@@ -148,6 +148,8 @@ void qThrowMeasurement::createOrthoSections(ccMainAppInterface* appInterface)
 		return;
 	}
 
+	m_mainAppInterface = appInterface;
+
 	/*** HERE STARTS THE ACTION ***/
 
 	//////generate ortho sections
@@ -155,6 +157,7 @@ void qThrowMeasurement::createOrthoSections(ccMainAppInterface* appInterface)
 	//get the selected polyline
 	const ccHObject::Container& selectedEntities = appInterface->getSelectedEntities();
 	ccPolyline* poly = ccHObjectCaster::ToPolyline(selectedEntities[0]);
+	m_selectedPolyline = poly;
 
 	//initialize relevant parameters
 	static double s_orthoSectionWidth = -1.0;
@@ -359,8 +362,9 @@ void qThrowMeasurement::extractPointsFromSections()
 		s_envelopeMaxEdgeLength = box.getMaxBoxDim() / 500.0;
 	}
 
-	//show dialog
-	ccSectionExtractionSubDlg sesDlg(MainWindow::TheInstance());
+	//display dialog
+	ATMDialog sesDlg(m_selectedPolyline, m_mainAppInterface);
+
 	sesDlg.setActiveSectionCount(sectionCount);
 	sesDlg.setSectionThickness(s_defaultSectionThickness);
 	sesDlg.setMaxEdgeLength(s_envelopeMaxEdgeLength);
@@ -703,7 +707,7 @@ bool qThrowMeasurement::extractSectionToEnvelope(const ccPolyline* originalSecti
 	bool multiPass,
 	bool splitEnvelope,
 	bool& envelopeGenerated,
-	bool visualDebugMode = false)
+	bool visualDebugMode)
 {
 	envelopeGenerated = false;
 
@@ -923,8 +927,7 @@ bool qThrowMeasurement::extractSectionToCloud(const std::vector<CCCoreLib::Refer
 
 ccHObject* qThrowMeasurement::getSectionExportGroup(unsigned& defaultGroupID, const QString& defaultName)
 {
-	MainWindow* mainWin = MainWindow::TheInstance();
-	ccHObject* root = mainWin ? mainWin->dbRootObject() : nullptr;
+	ccHObject* root = m_app ? m_app->dbRootObject() : nullptr;
 	if (!root)
 	{
 		ccLog::Warning("Internal error (no MainWindow or DB?!)");
@@ -945,7 +948,7 @@ ccHObject* qThrowMeasurement::getSectionExportGroup(unsigned& defaultGroupID, co
 				break;
 			}
 		}
-		mainWin->addToDB(destEntity);
+		m_app->addToDB(destEntity);
 		defaultGroupID = destEntity->getUniqueID();
 	}
 	return destEntity;

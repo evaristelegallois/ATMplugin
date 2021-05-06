@@ -61,6 +61,11 @@ protected:
 	//! Associated (MDI) window
 	ccGLWindow* m_associatedWin;
 
+	//! Associated interface
+	ccMainAppInterface* m_mainAppInterface;
+
+	ccPolyline* m_selectedPolyline; //plugin runs on a selected polyline
+
 	double angle; //to compute non-ortho sections as well
 
 	void createOrthoSections(ccMainAppInterface* appInterface);
