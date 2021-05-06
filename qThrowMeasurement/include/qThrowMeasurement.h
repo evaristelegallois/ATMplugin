@@ -17,6 +17,7 @@
 
 #pragma once
 
+#include "EnvelopeExtractor.h"
 #include "ccStdPluginInterface.h"
 
 //! Example qCC plugin
@@ -75,7 +76,7 @@ protected:
 		const ccPointCloud* originalSectionCloud,
 		ccPointCloud* unrolledSectionCloud, //'2D' cloud with Z = 0
 		unsigned sectionIndex,
-		ccEnvelopeExtractor::EnvelopeType type,
+		EnvelopeExtractor::EnvelopeType type,
 		PointCoordinateType maxEdgeLength,
 		bool multiPass,
 		bool splitEnvelope,

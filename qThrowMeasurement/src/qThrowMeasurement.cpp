@@ -42,6 +42,7 @@
 #include <ccProgressDialog.h>
 
 #include "qThrowMeasurement.h"
+#include "envelopeextractor.h"
 #include "ccMainAppInterface.h"
 
 #include "ActionA.h"
@@ -319,7 +320,7 @@ void qThrowMeasurement::extractPointsFromSections()
 	static bool s_extractSectionsAsEnvelopes = true;
 	static bool s_multiPass = false;
 	static bool s_splitEnvelope = false;
-	static ccEnvelopeExtractor::EnvelopeType s_extractSectionsType = ccEnvelopeExtractor::LOWER;
+	static EnvelopeExtractor::EnvelopeType s_extractSectionsType = EnvelopeExtractor::LOWER;
 
 	//number of eligible sections
 	unsigned sectionCount = 0;
@@ -693,11 +694,11 @@ void qThrowMeasurement::extractPointsFromSections()
 	}
 }
 
-bool extractSectionToEnvelope(const ccPolyline* originalSection,
+bool qThrowMeasurement::extractSectionToEnvelope(const ccPolyline* originalSection,
 	const ccPointCloud* originalSectionCloud,
 	ccPointCloud* unrolledSectionCloud, //'2D' cloud with Z = 0
 	unsigned sectionIndex,
-	ccEnvelopeExtractor::EnvelopeType envelopeType,
+	EnvelopeExtractor::EnvelopeType envelopeType,
 	PointCoordinateType maxEdgeLength,
 	bool multiPass,
 	bool splitEnvelope,
@@ -724,7 +725,7 @@ bool extractSectionToEnvelope(const ccPolyline* originalSection,
 	CCVector3 Y(0, 1, 0);
 
 	std::vector<unsigned> vertIndexes;
-	ccPolyline* envelope = ccEnvelopeExtractor::ExtractFlatEnvelope(unrolledSectionCloud,
+	ccPolyline* envelope = EnvelopeExtractor::ExtractFlatEnvelope(unrolledSectionCloud,
 		multiPass,
 		maxEdgeLength,
 		N.u,
@@ -827,7 +828,7 @@ bool extractSectionToEnvelope(const ccPolyline* originalSection,
 			//add to main DB
 			destEntity->addChild(envelopePart);
 			envelopePart->setDisplay_recursive(destEntity->getDisplay());
-			MainWindow::TheInstance()->addToDB(envelopePart, false, false);
+			//MainWindow::TheInstance()->addToDB(envelopePart, false, false);
 		}
 
 		envelopeGenerated = true;
@@ -911,7 +912,7 @@ bool qThrowMeasurement::extractSectionToCloud(const std::vector<CCCoreLib::Refer
 
 		//add to main DB
 		destEntity->addChild(sectionCloud);
-		MainWindow::TheInstance()->addToDB(sectionCloud, false, false);
+		//MainWindow::TheInstance()->addToDB(sectionCloud, false, false);
 
 		cloudGenerated = true;
 	}
