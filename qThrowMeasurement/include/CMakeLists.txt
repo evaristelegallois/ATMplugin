@@ -5,7 +5,10 @@ target_sources( ${PROJECT_NAME}
 		${CMAKE_CURRENT_LIST_DIR}/qThrowMeasurement.h
 		${CMAKE_CURRENT_LIST_DIR}/atmdialog.h
 		${CMAKE_CURRENT_LIST_DIR}/envelopeextractor.h
-		${CMAKE_CURRENT_LIST_DIR}/envelopeextractordlg.h
+		${CMAKE_CURRENT_LIST_DIR}/profileprocessor.h
+		${CMAKE_CURRENT_LIST_DIR}/segmentlinearregression.h
+		${CMAKE_CURRENT_LIST_DIR}/dppiecewiselinearregression.h
+		
 )
 
 target_include_directories( ${PROJECT_NAME}

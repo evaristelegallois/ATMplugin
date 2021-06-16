@@ -19,6 +19,7 @@
 
 #include "EnvelopeExtractor.h"
 #include "ccStdPluginInterface.h"
+#include "Neighbourhood.h"
 
 //! Example qCC plugin
 /** Replace 'ExamplePlugin' by your own plugin class name throughout and then
@@ -64,34 +65,8 @@ protected:
 	//! Associated interface
 	ccMainAppInterface* m_mainAppInterface;
 
-	ccPolyline* m_selectedPolyline; //plugin runs on a selected polyline
-
-	double angle; //to compute non-ortho sections as well
-
-	void createOrthoSections(ccMainAppInterface* appInterface);
-	void extractPointsFromSections();
-
-	//! Convert one or several ReferenceCloud instances to a single cloud and add it to the main DB
-	bool extractSectionToCloud(const std::vector<CCCoreLib::ReferenceCloud*>& refClouds,
-		unsigned sectionIndex,
-		bool& cloudGenerated);
-
-	//! Extract the envelope from a set of 2D points and add it to the main DB
-	bool extractSectionToEnvelope(const ccPolyline* originalSection,
-		const ccPointCloud* originalSectionCloud,
-		ccPointCloud* unrolledSectionCloud, //'2D' cloud with Z = 0
-		unsigned sectionIndex,
-		EnvelopeExtractor::EnvelopeType type,
-		PointCoordinateType maxEdgeLength,
-		bool multiPass,
-		bool splitEnvelope,
-		bool& envelopeGenerated,
-		bool visualDebugMode = false);
 
 protected:
-
-	//! Creates (if necessary) and returns a group to store entities in the main DB
-	ccHObject* getSectionExportGroup(unsigned& defaultGroupID, const QString& defaultName);
 
 	//! Imported entity
 	template<class EntityType> struct ImportedEntity
@@ -144,19 +119,8 @@ protected:
 		ccColor::Rgb backupColor;
 		bool backupColorShown;
 		PointCoordinateType backupWidth;
+		ccPolyline cloud;
 	};
-
-	//! Section
-	using Section = ImportedEntity<ccPolyline>;
-
-	//! Cloud
-	using Cloud = ImportedEntity<ccGenericPointCloud>;
-
-	//! Type of the pool of active sections
-	using SectionPool = QList<Section>;
-
-	//! Type of the pool of clouds
-	using CloudPool = QList<Cloud>;
 
 private:
 	//! Default action
@@ -165,14 +129,5 @@ private:
 		toolbar and an entry in the plugin menu.
 	**/
 	QAction* sectionExtraction;
-
-	//! Pool of active sections
-	SectionPool m_sections;
-
-	//! Selected polyline (if any)
-	Section* m_selectedPoly;
-
-	//! Pool of clouds
-	CloudPool m_clouds;
 
 };
