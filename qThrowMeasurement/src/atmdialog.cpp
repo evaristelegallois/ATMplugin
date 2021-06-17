@@ -17,7 +17,7 @@
 #include <assert.h>
 
 
-ATMDialog::ATMDialog(ccPolyline* polyline, ccMainAppInterface* app) :
+ATMDialog::ATMDialog(ccMainAppInterface* app) :
     QDialog(app ? app->getMainWindow() : nullptr),
     Ui::ATMDialog(),
 	app(app)

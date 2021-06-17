@@ -44,6 +44,7 @@
 #include "qThrowMeasurement.h"
 #include "envelopeextractor.h"
 #include "ccMainAppInterface.h"
+#include "atmdialog.h"
 
 #include "ActionA.h"
 #include "ActionA.cpp"
@@ -58,52 +59,36 @@
 
 using namespace CCCoreLib;
 
+
+//semi-persistent dialog values
+static float s_p = 1.00;
+static const char* s_type = "var";
+static int s_size, s_jumps = 0;
+
+
 // Default constructor:
 //	- pass the Qt resource path to the info.json file (from <yourPluginName>.qrc file) 
 //  - constructor should mainly be used to initialize actions and other members
 qThrowMeasurement::qThrowMeasurement( QObject *parent )
 	: QObject( parent )
     , ccStdPluginInterface( ":/CC/plugin/qThrowMeasurement/info.json" )
-	, sectionExtraction( nullptr )
+	, m_computeThrowMeasurement(nullptr)
+	, m_computeAngularDifference(nullptr)
 	, m_associatedWin (nullptr)
 {
 }
-
-struct Segment2D
-{
-	Segment2D() : s(0) {}
-
-	CCVector2 A, B, uAB;
-	PointCoordinateType lAB;
-	PointCoordinateType s; //curvilinear coordinate
-};
 
 // This method should enable or disable your plugin actions
 // depending on the currently selected entities ('selectedEntities').
 void qThrowMeasurement::onNewSelection( const ccHObject::Container &selectedEntities )
 {
-	if ( sectionExtraction == nullptr )
-	{
-		return;
-	}
+	if (m_computeThrowMeasurement)
+		m_computeThrowMeasurement->setEnabled(selectedEntities.size() >= 1 && 
+			(selectedEntities.back()->isA(CC_TYPES::HIERARCHY_OBJECT) || selectedEntities.back()->isA(CC_TYPES::POLY_LINE)));
 	
-	// If you need to check for a specific type of object, you can use the methods
-	// in ccHObjectCaster.h or loop and check the objects' classIDs like this:
-	//
-	//	for ( ccHObject *object : selectedEntities )
-	//	{
-	//		if ( object->getClassID() == CC_TYPES::VIEWPORT_2D_OBJECT )
-	//		{
-	//			// ... do something with the viewports
-	//		}
-	//	}
-	
-	// For example - only enable our action if something is selected.
-	if (sectionExtraction)
-	{
-		//classification: only one point cloud
-		sectionExtraction->setEnabled(selectedEntities.size() == 1 && selectedEntities[0]->isA(CC_TYPES::POLY_LINE));
-	}
+	if (m_computeAngularDifference)
+		m_computeAngularDifference->setEnabled(selectedEntities.size() == 1 && 
+			selectedEntities.back()->isA(CC_TYPES::POINT_CLOUD));
 
 }
 
@@ -112,25 +97,136 @@ void qThrowMeasurement::onNewSelection( const ccHObject::Container &selectedEnti
 QList<QAction *> qThrowMeasurement::getActions()
 {
 	// default action (if it has not been already created, this is the moment to do it)
-	if ( !sectionExtraction)
+	if (!m_computeThrowMeasurement)
 	{
 		// Here we use the default plugin name, description, and icon,
 		// but each action should have its own.
-		sectionExtraction = new QAction( getName(), this );
-		sectionExtraction->setToolTip( getDescription() );
-		sectionExtraction->setIcon( getIcon() );
+		m_computeThrowMeasurement = new QAction("", this );
+		m_computeThrowMeasurement->setToolTip( "" );
+		m_computeThrowMeasurement->setIcon(QIcon(QString::fromUtf8(":/CC/plugin/qThrowMeasurement/img/angularDiff.png")));
 		
 		// Connect appropriate signal
-		connect(sectionExtraction, &QAction::triggered, this, [this]()
-		{
-			//createOrthoSections( m_app );
-		});
+		connect(m_computeThrowMeasurement, &QAction::triggered, this, &qThrowMeasurement::computeThrowMeasurement);
 	}
 
-	return { sectionExtraction };
+	if (!m_computeAngularDifference)
+	{
+		m_computeAngularDifference = new QAction("", this);
+		m_computeAngularDifference->setToolTip("");
+		m_computeAngularDifference->setIcon(QIcon(QString::fromUtf8(":/CC/plugin/qThrowMeasurement/img/angularDiff.png")));
+		//connect signal
+		//connect(m_computeAngularDifference, &QAction::triggered, this, [this]);
+	}
+
+	return QList<QAction*>{
+		    m_computeThrowMeasurement,
+			m_computeAngularDifference,
+	};
 }
 
+////2D FUNCTIONNALITY
+void qThrowMeasurement::computeThrowMeasurement()
+{
+	std::vector<ccPolyline*> profiles;
+	for (int i = 0; i < m_app->getSelectedEntities().size(); i++)
+	{
+		if (m_app->getSelectedEntities().back()->isA(CC_TYPES::POLY_LINE))
+		{
+			ccPolyline * polyline = ccHObjectCaster::ToPolyline(m_app->getSelectedEntities().back());
+			profiles[i] = polyline;
+		}
+	}
+	computeSegmentation(profiles);
+}
 
+void qThrowMeasurement::computeSegmentation(std::vector<ccPolyline*> profiles)
+{
+	assert(m_app);
+	if (!m_app)
+		return;
+
+	ATMDialog atmDlg(m_app);
+
+
+	atmDlg.pDoubleSpinBox->setValue(s_p);
+	atmDlg.jSpinBox->setChecked(s_jumps);
+	//atmDlg.sizeSpinBox->setValue(s_size);
+	//atmDlg.
+
+	if (!atmDlg.exec())
+		return;
+
+	s_p = atmDlg.pDoubleSpinBox->value();
+	s_jumps = atmDlg.jSpinBox->value();
+	//s_type = atmDlg.jSpinBox-> ;
+
+
+	/*fusionDlg.octreeLevelSpinBox->setValue(s_octreeLevel);
+	fusionDlg.useRetroProjectionCheckBox->setChecked(s_fmUseRetroProjectionError);
+	fusionDlg.minPointsPerFacetSpinBox->setValue(s_minPointsPerFacet);
+	//"no normal" warning
+	fusionDlg.noNormalWarningLabel->setVisible(!pc->hasNormals());
+
+	if (!fusionDlg.exec())
+		return;
+
+	s_octreeLevel = fusionDlg.octreeLevelSpinBox->value();
+	s_fmUseRetroProjectionError = fusionDlg.useRetroProjectionCheckBox->isChecked();
+	s_minPointsPerFacet = fusionDlg.minPointsPerFacetSpinBox->value();
+	s_errorMeasureType = fusionDlg.errorMeasureComboBox->currentIndex();
+	s_errorMaxPerFacet = fusionDlg.maxRMSDoubleSpinBox->value();
+	s_kdTreeFusionMaxAngle_deg = fusionDlg.maxAngleDoubleSpinBox->value();
+	s_kdTreeFusionMaxRelativeDistance = fusionDlg.maxRelativeDistDoubleSpinBox->value();
+	s_maxEdgeLength = fusionDlg.maxEdgeLengthDoubleSpinBox->value();*/
+
+	/*//create scalar field to host the fusion result
+	const char c_defaultSFName[] = "facet indexes";
+	int sfIdx = pc->getScalarFieldIndexByName(c_defaultSFName);
+	if (sfIdx < 0)
+		sfIdx = pc->addScalarField(c_defaultSFName);
+	if (sfIdx < 0)
+	{
+		m_app->dispToConsole("Couldn't allocate a new scalar field for computing fusion labels! 
+		Try to free some memory ...", ccMainAppInterface::ERR_CONSOLE_MESSAGE);
+		return;
+	}
+	pc->setCurrentScalarField(sfIdx);*/
+
+
+	std::vector<QVector<QVector2D>> inputs;
+	std::vector<ccPolyline*> outputs;
+	for (int i = 0; i < profiles.size(); i++)
+	{
+		profileProcessor* processor = new profileProcessor(profiles[i]);
+		inputs[i] = processor->profileToXY();
+	}
+
+	int n = inputs[0].size();
+	int k = 0; //remove if size given by user
+	float* x, * y;
+
+	for (int i = 0; i < profiles.size(); i++)
+	{
+		for (int j = 0; j < n; j++)
+		{
+			x[j] = inputs[i][j][0];
+			y[j] = inputs[i][j][1];
+			k++;
+		}
+
+		//get linear regression parameters here
+		dPPiecewiseLinearRegression* model = new dPPiecewiseLinearRegression(x, y, s_size, s_p, s_jumps, s_type);
+		std::vector<SegmentLinearRegression>* segments = model->computeSegmentation();
+
+		for (int i = 0; i < profiles.size(); i++)
+		{
+			profileProcessor* processor = new profileProcessor(profiles[i]);
+			outputs[i] = processor->segmentToProfile();
+		}
+	}
+}
+
+////3D FUNCTIONNALITY
 ScalarType qThrowMeasurement::computeAngularDifference(double theta1, double theta2)
 {
 	QVector2D v1 = QVector2D(sin(theta1), cos(theta1));
@@ -169,8 +265,8 @@ ScalarType qThrowMeasurement::getAngleFromVerticality(ccPointCloud* cloud)
 	//scalarField->computeMinAndMax();
 }
 
-void qThrowMeasurement::compute(ccMainAppInterface* m_app)
-{
+//void qThrowMeasurement::compute(ccMainAppInterface* m_app)
+//{
 	// TO PUT A THE BEGINING OF PLUGIN
 	/*assert(m_app);
 	if (!m_app)

@@ -20,6 +20,8 @@
 #include "EnvelopeExtractor.h"
 #include "ccStdPluginInterface.h"
 #include "Neighbourhood.h"
+#include "dppiecewiselinearregression.h"
+#include "profileprocessor.h"
 
 //! Example qCC plugin
 /** Replace 'ExamplePlugin' by your own plugin class name throughout and then
@@ -50,8 +52,16 @@ class qThrowMeasurement : public QObject, public ccStdPluginInterface
         Q_PLUGIN_METADATA( IID "cccorp.cloudcompare.plugin.qThrowMeasurement" FILE "../info.json" )
 
 public:
-        explicit qThrowMeasurement( QObject *parent = nullptr );
-        ~qThrowMeasurement() override = default;
+    explicit qThrowMeasurement( QObject *parent = nullptr );
+    ~qThrowMeasurement() override = default;
+
+	//// 2D FUNCTIONNALITY
+	void computeThrowMeasurement();
+	void computeSegmentation(std::vector<ccPolyline*> polylines);
+
+	//// 3D FUNCTIONNALITY
+	ScalarType computeAngularDifference(double theta1, double theta2);
+	ScalarType getAngleFromVerticality(ccPointCloud* cloud);
 
 	// Inherited from ccStdPluginInterface
 	void onNewSelection( const ccHObject::Container &selectedEntities ) override;
@@ -128,6 +138,7 @@ private:
 		Each action will correspond to an icon in the dedicated
 		toolbar and an entry in the plugin menu.
 	**/
-	QAction* sectionExtraction;
+	QAction* m_computeThrowMeasurement;
+	QAction* m_computeAngularDifference;
 
 };

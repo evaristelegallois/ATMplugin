@@ -2,6 +2,7 @@
 #define PROFILEPROCESSOR_H
 
 #include <QVector2D>
+#include <QVector>
 
 #include <ccPolyline.h>
 #include <ccGenericPointCloud.h>
@@ -15,13 +16,14 @@ public:
 
     ~profileProcessor();
 
-    QVector2D profileToXY(ccPolyline* profile);
-    ccPolyline segmentToProfile(SegmentLinearRegression* segment);
+    QVector<QVector2D> profileToXY();
+    ccPolyline* segmentToProfile();
 
 private:
     ccPolyline * m_inputProfile, * m_outputProfile;
-    SegmentLinearRegression * m_inputSegment, * m_outputSegment;
-    float * m_inputX, * m_inputY, * m_outputX, * m_outputY;
+    SegmentLinearRegression * m_inputSegment;
+    float * m_inputX, * m_inputY, * m_outputX, * m_outputY, * m_outputZ; //no need of input Z bc 2D
+    QVector<const CCVector3 *> m_inputProfilePts;
 
 };
 

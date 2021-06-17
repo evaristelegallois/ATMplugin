@@ -13,7 +13,7 @@ class ATMDialog : public QDialog, public Ui::ATMDialog
     Q_OBJECT
 
 public:
-    ATMDialog(ccPolyline* polyline, ccMainAppInterface* app);
+    ATMDialog(ccMainAppInterface* app);
     //~ATMDialog();
 
     //! Loads parameters from persistent settings
