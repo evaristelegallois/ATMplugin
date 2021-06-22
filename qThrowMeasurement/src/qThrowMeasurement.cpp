@@ -61,7 +61,7 @@ using namespace CCCoreLib;
 
 
 //semi-persistent dialog values
-static float s_p = 10.00;
+static float s_p = 1.00;
 static const char* s_type = "var";
 static int s_size, s_jumps = 0;
 
@@ -75,6 +75,8 @@ qThrowMeasurement::qThrowMeasurement( QObject *parent )
 	, m_computeThrowMeasurement(nullptr)
 	, m_computeAngularDifference(nullptr)
 	, m_associatedWin (nullptr)
+	, m_mainAppInterface (nullptr)
+	, m_processor (nullptr)
 {
 }
 
@@ -167,6 +169,7 @@ void qThrowMeasurement::computeSegmentation(std::vector<ccPolyline*> profiles)
 
 	std::vector<QVector<QVector2D*>> inputs;
 	inputs.reserve(profiles.size());
+
 	for (int i = 0; i < profiles.size(); i++)
 	{
 		QVector<QVector2D*> list;
@@ -182,6 +185,7 @@ void qThrowMeasurement::computeSegmentation(std::vector<ccPolyline*> profiles)
 	for (int i = 0; i < profiles.size(); i++)
 	{
 		const int n = inputs[i].size();
+		//inputs[i].reserve(n);
 		float* x = new float[n];
 		float* y = new float[n];
 
@@ -198,40 +202,34 @@ void qThrowMeasurement::computeSegmentation(std::vector<ccPolyline*> profiles)
 		std::vector<SegmentLinearRegression*> segments = model->computeSegmentation();
 		qDebug() << "segmentation model OK";
 		qDebug() << "nb of segments" << segments.size();
-		//qDebug() << "nb of segment vertices from model" << segments[0]->getSize();
 
-		std::vector<ccPolyline*> outputs;
+		/*std::vector<ccPolyline*> outputs;
 		outputs.reserve(segments.size());
 		for (int i = 0; i < profiles.size(); i++)
 		{
 			//profileProcessor* processor = new profileProcessor(segments[i]);
 			outputs.push_back(m_processor->segmentToProfile(segments[i]));
 			qDebug() << "outputs OK";
-			//ccPointCloud* pc = ccHObjectCaster::ToPointCloud(m_app->getSelectedEntities()[i]);
-			//displayProfile(pc);
-		}
+			ccPointCloud* pc = ccHObjectCaster::ToPointCloud(outputs[i]);
+			m_app->addToDB(outputs[i]);
+			m_app->redrawAll();
+		}*/
 	}
 }
 
 void qThrowMeasurement::displayProfile(ccPointCloud* pc)
 {
 	//create scalar field to host the fusion result
-		//const char c_defaultSFName[] = "Segmentation P = " + std::to_string(s_p);
-		const char c_defaultSFName[] = "Segmentation";
-		int sfIdx = pc->getScalarFieldIndexByName(c_defaultSFName);
-		/*if (sfIdx < 0)
-			sfIdx = pc->addScalarField(c_defaultSFName);
-		if (sfIdx < 0)
-		{
-			m_app->dispToConsole("Couldn't allocate a new scalar field for computing fusion labels! Try to free some memory ...", ccMainAppInterface::ERR_CONSOLE_MESSAGE);
-			return;
-		}*/
-		pc->setCurrentScalarField(sfIdx);
-		pc->getScalarField(sfIdx)->computeMinAndMax();
-		pc->setCurrentDisplayedScalarField(sfIdx);
-		pc->showSF(true);
+	//const char c_defaultSFName[] = "Segmentation P = " + std::to_string(s_p);
+	//int sfIdx = pc->getScalarFieldIndexByName("Segmentation");
+	qDebug() << "get nb of SF" << pc->getNumberOfScalarFields();
 
-	m_app->redrawAll();
+	//pc->setCurrentScalarField(sfIdx);
+	//pc->getScalarField(sfIdx)->computeMinAndMax();
+	//pc->setCurrentDisplayedScalarField(sfIdx);
+	//pc->showSF(true);
+
+	//m_app->redrawAll();
 }
 
 ////3D FUNCTIONNALITY
