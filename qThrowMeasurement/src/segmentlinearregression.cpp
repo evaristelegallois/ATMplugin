@@ -1,16 +1,20 @@
 #include "segmentlinearregression.h"
+#include <QDebug>
 
 SegmentLinearRegression::SegmentLinearRegression(int startInd, int endInd, float* x, float* y) :
 	m_startInd(startInd), m_endInd(endInd)
 {
 	//allocate size for m_points?
+	m_points = new QVector2D[(unsigned int) (endInd - startInd)];
+
 	int k = 0;
-	for (int i = m_startInd; i < m_endInd; i++)
+	for (int i = m_startInd; i < m_endInd + 1; i++)
 	{
 		m_points[i] = QVector2D(x[i], y[i]);
 		k++;
 	}
 	m_size = k;
+	m_a = 0, m_b = 0, m_r = 0, m_rsquare = 0, m_var = 0;
 }
 
 SegmentLinearRegression::~SegmentLinearRegression()

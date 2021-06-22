@@ -8,6 +8,7 @@ class dPPiecewiseLinearRegression
 public:
     dPPiecewiseLinearRegression(float* x, float* y, int n, float p, 
         int j = 0, const char* type = "var");
+    ~dPPiecewiseLinearRegression();
 
     float computeModel(float x, int i, int j);
     float computeResidual(int i);
@@ -18,7 +19,7 @@ public:
     float computeVariance(int i, int j);
 
     int getMaximumIndex(int j);
-    std::vector<SegmentLinearRegression>* computeSegmentation();
+    std::vector<SegmentLinearRegression*> computeSegmentation();
 
     float computeArithmeticMean(float* x);
 
@@ -30,9 +31,7 @@ private:
     int m_j;
     const char* m_type;
 
-    float m_a, m_b, m_r; //m_a, m_b useless
-
-    std::vector<SegmentLinearRegression> * m_segments;
+    std::vector<SegmentLinearRegression*> m_segments;
 };
 
 #endif // DPPIECEWISELINEARREGRESSION_H

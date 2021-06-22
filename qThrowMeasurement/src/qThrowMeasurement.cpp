@@ -42,7 +42,6 @@
 #include <ccProgressDialog.h>
 
 #include "qThrowMeasurement.h"
-#include "envelopeextractor.h"
 #include "ccMainAppInterface.h"
 #include "atmdialog.h"
 
@@ -54,6 +53,7 @@
 //Qt
 #include <QMainWindow>
 #include <QVector2D>
+#include <QVector>
 #include <GeometricalAnalysisTools.h>
 #include <Jacobi.h>
 
@@ -61,7 +61,7 @@ using namespace CCCoreLib;
 
 
 //semi-persistent dialog values
-static float s_p = 1.00;
+static float s_p = 10.00;
 static const char* s_type = "var";
 static int s_size, s_jumps = 0;
 
@@ -101,7 +101,7 @@ QList<QAction *> qThrowMeasurement::getActions()
 	{
 		// Here we use the default plugin name, description, and icon,
 		// but each action should have its own.
-		m_computeThrowMeasurement = new QAction("", this );
+		m_computeThrowMeasurement = new QAction("Throw", this );
 		m_computeThrowMeasurement->setToolTip( "" );
 		m_computeThrowMeasurement->setIcon(QIcon(QString::fromUtf8(":/CC/plugin/qThrowMeasurement/img/angularDiff.png")));
 		
@@ -111,7 +111,7 @@ QList<QAction *> qThrowMeasurement::getActions()
 
 	if (!m_computeAngularDifference)
 	{
-		m_computeAngularDifference = new QAction("", this);
+		m_computeAngularDifference = new QAction("Angle", this);
 		m_computeAngularDifference->setToolTip("");
 		m_computeAngularDifference->setIcon(QIcon(QString::fromUtf8(":/CC/plugin/qThrowMeasurement/img/angularDiff.png")));
 		//connect signal
@@ -127,16 +127,22 @@ QList<QAction *> qThrowMeasurement::getActions()
 ////2D FUNCTIONNALITY
 void qThrowMeasurement::computeThrowMeasurement()
 {
+	const int size = m_app->getSelectedEntities().size();
 	std::vector<ccPolyline*> profiles;
+	profiles.reserve(size);
+
 	for (int i = 0; i < m_app->getSelectedEntities().size(); i++)
 	{
-		if (m_app->getSelectedEntities().back()->isA(CC_TYPES::POLY_LINE))
+		qDebug() << "nb of selected entities" << m_app->getSelectedEntities().size();
+		if (m_app->getSelectedEntities()[i]->isA(CC_TYPES::POLY_LINE))
 		{
-			ccPolyline * polyline = ccHObjectCaster::ToPolyline(m_app->getSelectedEntities().back());
-			profiles[i] = polyline;
+			ccPolyline * polyline = ccHObjectCaster::ToPolyline(m_app->getSelectedEntities()[i]);
+			profiles.push_back(polyline);
 		}
 	}
+	qDebug() << "start segmentation";
 	computeSegmentation(profiles);
+	qDebug() << "end segmentation";
 }
 
 void qThrowMeasurement::computeSegmentation(std::vector<ccPolyline*> profiles)
@@ -147,83 +153,85 @@ void qThrowMeasurement::computeSegmentation(std::vector<ccPolyline*> profiles)
 
 	ATMDialog atmDlg(m_app);
 
-
 	atmDlg.pDoubleSpinBox->setValue(s_p);
-	atmDlg.jSpinBox->setChecked(s_jumps);
-	//atmDlg.sizeSpinBox->setValue(s_size);
-	//atmDlg.
+	atmDlg.jCheckBox->setChecked(s_jumps);
 
 	if (!atmDlg.exec())
 		return;
 
 	s_p = atmDlg.pDoubleSpinBox->value();
-	s_jumps = atmDlg.jSpinBox->value();
-	//s_type = atmDlg.jSpinBox-> ;
+	if (atmDlg.jCheckBox->isChecked()) s_jumps = 1;
+	else s_jumps = 0;
+	if (atmDlg.scoreComboBox->currentText() == "Variance of residuals") s_type = "var";
+	else s_type = "rsquare";
 
-
-	/*fusionDlg.octreeLevelSpinBox->setValue(s_octreeLevel);
-	fusionDlg.useRetroProjectionCheckBox->setChecked(s_fmUseRetroProjectionError);
-	fusionDlg.minPointsPerFacetSpinBox->setValue(s_minPointsPerFacet);
-	//"no normal" warning
-	fusionDlg.noNormalWarningLabel->setVisible(!pc->hasNormals());
-
-	if (!fusionDlg.exec())
-		return;
-
-	s_octreeLevel = fusionDlg.octreeLevelSpinBox->value();
-	s_fmUseRetroProjectionError = fusionDlg.useRetroProjectionCheckBox->isChecked();
-	s_minPointsPerFacet = fusionDlg.minPointsPerFacetSpinBox->value();
-	s_errorMeasureType = fusionDlg.errorMeasureComboBox->currentIndex();
-	s_errorMaxPerFacet = fusionDlg.maxRMSDoubleSpinBox->value();
-	s_kdTreeFusionMaxAngle_deg = fusionDlg.maxAngleDoubleSpinBox->value();
-	s_kdTreeFusionMaxRelativeDistance = fusionDlg.maxRelativeDistDoubleSpinBox->value();
-	s_maxEdgeLength = fusionDlg.maxEdgeLengthDoubleSpinBox->value();*/
-
-	/*//create scalar field to host the fusion result
-	const char c_defaultSFName[] = "facet indexes";
-	int sfIdx = pc->getScalarFieldIndexByName(c_defaultSFName);
-	if (sfIdx < 0)
-		sfIdx = pc->addScalarField(c_defaultSFName);
-	if (sfIdx < 0)
-	{
-		m_app->dispToConsole("Couldn't allocate a new scalar field for computing fusion labels! 
-		Try to free some memory ...", ccMainAppInterface::ERR_CONSOLE_MESSAGE);
-		return;
-	}
-	pc->setCurrentScalarField(sfIdx);*/
-
-
-	std::vector<QVector<QVector2D>> inputs;
-	std::vector<ccPolyline*> outputs;
+	std::vector<QVector<QVector2D*>> inputs;
+	inputs.reserve(profiles.size());
 	for (int i = 0; i < profiles.size(); i++)
 	{
-		profileProcessor* processor = new profileProcessor(profiles[i]);
-		inputs[i] = processor->profileToXY();
+		QVector<QVector2D*> list;
+		m_processor = new profileProcessor(profiles[i]);
+		inputs.push_back(m_processor->profileToXY()); //need to make a list of processor to avoid them getting mixed up
+		qDebug() << "profile XY OK";
+
 	}
 
-	int n = inputs[0].size();
 	int k = 0; //remove if size given by user
-	float* x, * y;
+	//float* x, * y;
 
 	for (int i = 0; i < profiles.size(); i++)
 	{
+		const int n = inputs[i].size();
+		float* x = new float[n];
+		float* y = new float[n];
+
 		for (int j = 0; j < n; j++)
 		{
-			x[j] = inputs[i][j][0];
-			y[j] = inputs[i][j][1];
+			//qDebug() << inputs[i][j]->x();
+			x[j] = inputs[i][j]->x();
+			y[j] = inputs[i][j]->y();
 			k++;
 		}
 
 		//get linear regression parameters here
-		dPPiecewiseLinearRegression* model = new dPPiecewiseLinearRegression(x, y, s_size, s_p, s_jumps, s_type);
-		std::vector<SegmentLinearRegression>* segments = model->computeSegmentation();
+		dPPiecewiseLinearRegression* model = new dPPiecewiseLinearRegression(x, y, k, s_p, s_jumps, s_type);
+		std::vector<SegmentLinearRegression*> segments = model->computeSegmentation();
+		qDebug() << "segmentation model OK";
+		qDebug() << "nb of segments" << segments.size();
+		//qDebug() << "nb of segment vertices from model" << segments[0]->getSize();
 
+		std::vector<ccPolyline*> outputs;
+		outputs.reserve(segments.size());
 		for (int i = 0; i < profiles.size(); i++)
 		{
-			profileProcessor* processor = new profileProcessor(profiles[i]);
-			outputs[i] = processor->segmentToProfile();
+			//profileProcessor* processor = new profileProcessor(segments[i]);
+			outputs.push_back(m_processor->segmentToProfile(segments[i]));
+			qDebug() << "outputs OK";
+			//ccPointCloud* pc = ccHObjectCaster::ToPointCloud(m_app->getSelectedEntities()[i]);
+			//displayProfile(pc);
 		}
 	}
+}
+
+void qThrowMeasurement::displayProfile(ccPointCloud* pc)
+{
+	//create scalar field to host the fusion result
+		//const char c_defaultSFName[] = "Segmentation P = " + std::to_string(s_p);
+		const char c_defaultSFName[] = "Segmentation";
+		int sfIdx = pc->getScalarFieldIndexByName(c_defaultSFName);
+		/*if (sfIdx < 0)
+			sfIdx = pc->addScalarField(c_defaultSFName);
+		if (sfIdx < 0)
+		{
+			m_app->dispToConsole("Couldn't allocate a new scalar field for computing fusion labels! Try to free some memory ...", ccMainAppInterface::ERR_CONSOLE_MESSAGE);
+			return;
+		}*/
+		pc->setCurrentScalarField(sfIdx);
+		pc->getScalarField(sfIdx)->computeMinAndMax();
+		pc->setCurrentDisplayedScalarField(sfIdx);
+		pc->showSF(true);
+
+	m_app->redrawAll();
 }
 
 ////3D FUNCTIONNALITY
@@ -263,6 +271,8 @@ ScalarType qThrowMeasurement::getAngleFromVerticality(ccPointCloud* cloud)
 	}
 
 	//scalarField->computeMinAndMax();
+
+	return 1.00;
 }
 
 //void qThrowMeasurement::compute(ccMainAppInterface* m_app)

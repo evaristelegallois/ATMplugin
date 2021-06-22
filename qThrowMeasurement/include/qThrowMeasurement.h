@@ -17,7 +17,6 @@
 
 #pragma once
 
-#include "EnvelopeExtractor.h"
 #include "ccStdPluginInterface.h"
 #include "Neighbourhood.h"
 #include "dppiecewiselinearregression.h"
@@ -58,6 +57,7 @@ public:
 	//// 2D FUNCTIONNALITY
 	void computeThrowMeasurement();
 	void computeSegmentation(std::vector<ccPolyline*> polylines);
+	void displayProfile(ccPointCloud* pc);
 
 	//// 3D FUNCTIONNALITY
 	ScalarType computeAngularDifference(double theta1, double theta2);
@@ -140,5 +140,7 @@ private:
 	**/
 	QAction* m_computeThrowMeasurement;
 	QAction* m_computeAngularDifference;
+
+	profileProcessor* m_processor;
 
 };

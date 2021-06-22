@@ -3,8 +3,6 @@
 
 #include <ui_ATMDialog.h>
 
-#include "envelopeextractor.h"
-
 class ccMainAppInterface;
 class ccPolyline;
 
@@ -15,11 +13,6 @@ class ATMDialog : public QDialog, public Ui::ATMDialog
 public:
     ATMDialog(ccMainAppInterface* app);
     //~ATMDialog();
-
-    //! Loads parameters from persistent settings
-    void loadParamsFromPersistentSettings();
-    //! Saves parameters to persistent settings
-    void saveParamsToPersistentSettings();
 
 protected:
 

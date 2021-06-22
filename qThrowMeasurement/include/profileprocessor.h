@@ -16,8 +16,8 @@ public:
 
     ~profileProcessor();
 
-    QVector<QVector2D> profileToXY();
-    ccPolyline* segmentToProfile();
+    QVector<QVector2D*> profileToXY();
+    ccPolyline* segmentToProfile(SegmentLinearRegression* segment);
 
 private:
     ccPolyline * m_inputProfile, * m_outputProfile;
