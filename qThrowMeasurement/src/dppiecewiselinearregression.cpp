@@ -37,7 +37,7 @@ float dPPiecewiseLinearRegression::computeModel(float x, int i, int j)
     return computeSlope(i,j)*x + computeIntercept(i,j);
 }
 
-////SCORING FUNCTION (r²)
+////SCORING FUNCTION (r² based)
 float dPPiecewiseLinearRegression::computeRScore(int i, int j)
 {
     float var1 = 0., var2 = 0.;
@@ -64,25 +64,19 @@ float dPPiecewiseLinearRegression::computeRSquare(int i, int j)
         float delta_k = m_y[k] - intercept - slope * m_x[k];
         var1 += delta_k * delta_k;
         var2 += (m_y[k] - meanY)* (m_y[k] - meanY);
-
-        //qDebug() << "y" << m_y[k];
-        //qDebug() << "x" << m_x[k];
     }
 
     return static_cast <float>(1.) - static_cast<float>(var1 / var2);
 }
 
-////SCORING FUNCTION (variance)
+////SCORING FUNCTION (variance of residuals based)
+//technically not a variance but a mean
 float dPPiecewiseLinearRegression::computeVScore(int i, int j)
 {
+    /*
     float residuals = 0.;
-    float slope = computeFirstSlope(i, j);
-    float intercept = computeFirstIntercept(i, j);
-
-    /*for (int k = i; k < j; k++) residuals += pow(m_y[k] - intercept 
-        - slope * m_x[k], 2);
-
-    return -(static_cast<float>(1.) / static_cast<float>(m_n - 1.)) * residuals;*/
+    float slope = computeSlope(i, j);
+    float intercept = computeIntercept(i, j);
 
     for (int k = i; k < j+1; k++)
     {
@@ -91,6 +85,21 @@ float dPPiecewiseLinearRegression::computeVScore(int i, int j)
     }
 
     return  (-1. * residuals / static_cast<float>(m_n - 1.));
+    */
+
+
+    float var1 = 0., var2 = 0.;
+    float meanY = computeArithmeticMean(m_y, i, j);
+    float slope = computeSlope(i, j);
+    float intercept = computeIntercept(i, j);
+
+    for (int k = i; k < j + 1; k++)
+    {
+        var1 += (slope*m_x[k] + intercept - m_y[k]) * (slope * m_x[k] + intercept - m_y[k]);
+        var2 += (m_y[k] - meanY) * (m_y[k] - meanY);
+    }
+
+    return static_cast<float>(-1.*(var1 / var2));
 }
 
 float dPPiecewiseLinearRegression::computeVar(int i, int j)
@@ -115,10 +124,41 @@ float dPPiecewiseLinearRegression::computeVar(int i, int j)
 
 int dPPiecewiseLinearRegression::getMaximumIndex(int j)
 {
+    m_maxL = j;
     int i = 0, i_max = 0;
-    float score = 0., maxScore = /*3.40282e+038*/ -m_p;
+    float score = 0., maxScore = -3.40282e+038, minScore = -m_p, currentScore = 0.;
 
-    for (int i = 0; i < j+1; i++)
+    for (int i = (j - m_maxL); i < (j - m_minL); i++)
+    {
+        //qDebug() << "score" << score;
+        if (m_type == "rsquare")
+        {
+            currentScore = computeRScore(i, j);
+            score = minScore + currentScore - m_p;
+        }
+        else
+        {
+            currentScore = computeVScore(i, j);
+            if (currentScore < minScore) minScore = currentScore;
+            score = minScore + currentScore - m_p; //default
+            qDebug() << "score" << score << "currentScore" << currentScore;
+            qDebug() << "minScore" << minScore << "maxScore" << maxScore;
+        }
+
+        if (score > maxScore)
+        {
+            maxScore = score;
+            i_max = i;
+        }
+    }
+
+    return i_max;
+
+
+    /*int i = 0, i_max = 0;
+    float score = 0., maxScore = /*3.40282e+038 -m_p;
+
+    for (int i = 0; i < j + 1; i++)
     {
         if (m_type == "rsquare") score = computeRScore(i, j) - m_p;
         else score = computeVScore(i, j) - m_p; //default
@@ -130,7 +170,7 @@ int dPPiecewiseLinearRegression::getMaximumIndex(int j)
         }
     }
 
-    return i_max;
+    return i_max;*/
 }
 
 std::vector<SegmentLinearRegression*> dPPiecewiseLinearRegression::computeSegmentation()
@@ -147,6 +187,7 @@ std::vector<SegmentLinearRegression*> dPPiecewiseLinearRegression::computeSegmen
     }
 
     if (m_j != 0) maxI[0] = 0;
+    else maxI[0] = 0;
 
     qDebug() << "maxI size" << maxI.size();
 
@@ -177,18 +218,8 @@ float dPPiecewiseLinearRegression::computeArithmeticMean(float* x, int i, int j)
 float dPPiecewiseLinearRegression::computeSlope(int i, int j)
 {
     float sumX = 0., sumY = 0., sumX2 = 0., sumXY = 0.;
-
-    /*for (int k = i; k < j; k++)
-    {
-        sumX = sumX + m_x[k];
-        sumX2 = sumX2 + m_x[k] * m_x[k];
-        sumY = sumY + m_y[k];
-        sumXY = sumXY + m_x[k] * m_y[k];
-    }*/
-
     float meanX = computeArithmeticMean(m_x, i, j);
     float meanY = computeArithmeticMean(m_y, i, j);
-    //qDebug() << "meanX" << meanX;
 
     for (int k = i; k < j+1; k++)
     {
@@ -196,25 +227,12 @@ float dPPiecewiseLinearRegression::computeSlope(int i, int j)
         sumX2 += (m_x[k] - meanX)*(m_x[k] - meanX);
     }
 
-    //compute a
-    //return static_cast<float>(m_n * sumXY - sumX * sumY) / static_cast<float>(m_n * sumX2 - sumX * sumX);
-    //to edit bc it suspiciously seems like it uses the forbidden variance computation
-
     return static_cast<float> (sumXY) / static_cast<float> (sumX2);
 }
 
 float dPPiecewiseLinearRegression::computeFirstSlope(int i, int j)
 {
     float sumX = 0., sumY = 0., sumX2 = 0., sumXY = 0.;
-
-    /*for (int k = i; k < j; k++)
-    {
-        sumX = sumX + m_x[k];
-        sumX2 = sumX2 + m_x[k] * m_x[k];
-        sumY = sumY + m_y[k];
-        sumXY = sumXY + m_x[k] * m_y[k];
-    }*/
-
     for (int k = 0; k < m_n; k++)
     {
         sumX = sumX + m_x[k];
@@ -229,11 +247,6 @@ float dPPiecewiseLinearRegression::computeFirstSlope(int i, int j)
         sumXY += (m_x[k] - meanX) * (m_y[k] - meanY);
         sumX2 += (m_x[k] - meanX) * (m_x[k] - meanX);
     }
-
-    //compute a
-    //return static_cast<float>(m_n * sumXY - sumX * sumY) / static_cast<float>(m_n * sumX2 - sumX * sumX);
-    //to edit bc it suspiciously seems like it uses the forbidden variance computation
-
     return static_cast<float> (sumXY) / static_cast<float> (sumX2);
 }
 
@@ -266,18 +279,3 @@ float dPPiecewiseLinearRegression::computeFirstIntercept(int i, int j)
     //compute b
     return static_cast<float>(sumY - computeFirstSlope(i, j) * sumX) / static_cast<float>(m_n);
 }
-
-/*
-float dPPiecewiseLinearRegression::computeVariance(int i, int j)
-{
-    float var = 0.;
-    float meanX = computeArithmeticMean(m_x, i, j);
-    qDebug() << "mean" << meanX;
-    for (int k = i; k < j; k++) 
-    { 
-        var += (m_x[k] - meanX)*(m_x[k] - meanX);
-    }
-
-    return static_cast<float> (var) / static_cast<float>(m_n - 1.);
-}
-*/

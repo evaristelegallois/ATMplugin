@@ -63,7 +63,7 @@ public:
 	ScalarType computeAngularDifference(double theta1, double theta2);
 	ScalarType getAngleFromVerticality(ccPointCloud* cloud);
 
-	void exportData(std::vector<SegmentLinearRegression*> segments);
+	void exportData(std::vector<SegmentLinearRegression*> segments, int index);
 
 	// Inherited from ccStdPluginInterface
 	void onNewSelection( const ccHObject::Container &selectedEntities ) override;

@@ -204,42 +204,84 @@ void qThrowMeasurement::computeSegmentation(std::vector<ccPolyline*> profiles)
 		std::vector<SegmentLinearRegression*> segments = model->computeSegmentation();
 		qDebug() << "segmentation model OK";
 
-		outputs.push_back(m_processors[i]->segmentToProfile(segments));
+		outputs.push_back(m_processors[i]->segmentToProfile(segments)); // ISSUE HERE invalid vector subscript
 		qDebug() << "outputs OK";
 		m_app->addToDB(outputs[i]);
 
-		exportData(segments);
+		/*
+		if (outputs.empty())
+			return;
+
+		//we only export 'temporary' objects
+		unsigned exportCount = outputs.size();
+
+		if (!exportCount)
+		{
+			//nothing to do
+			ccLog::Warning("[qThrowMeasurement] All segments are already in DB");
+			return;
+		}
+
+		//ccHObject* destEntity = ccHObject::New("ATMPlugin", "0", "Segmentation results"); //default group -> ID = 0
+		//New(const QString & pluginId, const QString & classId, const char* name = nullptr);
+		//assert(destEntity);
+
+		ccHObject toSave("Segmentation results");
+
+		QMainWindow* mainWin = m_app->getMainWindow();
+
+		//export entites
+		for (auto& output : outputs)
+		{
+
+				//destEntity->addChild(output);
+			toSave.addChild(output);
+			//output->setDisplay_recursive(toSave->getDisplay());
+				//output.isInDB = true;
+				//output->setDisplay_recursive(destEntity->getDisplay());
+				m_app->addToDB(output, false, false);
+			
+		}
+
+		ccLog::Print(QString("[qThrowMeasurement] %1 segmentation(s) computed").arg(exportCount));
+		*/
+
+		exportData(segments, i);
 	}
 
 	m_app->redrawAll();
+
+	//release memory
 	m_processors.clear();
 	inputs.clear();
 	outputs.clear();
 }
 
-void qThrowMeasurement::exportData(std::vector<SegmentLinearRegression*> segments)
+void qThrowMeasurement::exportData(std::vector<SegmentLinearRegression*> segments, int index)
 {
 	//coordinates
-	QString filename = "C:/Users/user/Documents/coordinates.txt";
-	QFile file(filename);
-	if (file.open(QIODevice::ReadWrite)) {
-		QTextStream stream(&file);
-		stream << "curvilinear abscissa" << "\t" << "z" << "\n";
 
-		for (int i = 0; i < segments.size(); i++)
-		{
+		QString filename = QString("C:/Users/Admin/Documents/profile#%1_coordinates.txt").arg(index+1);
+		QFile file(filename);
+		qDebug() << filename;
+		if (file.open(QIODevice::ReadWrite)) {
+			QTextStream stream(&file);
+			stream << "curvilinear abscissa" << "\t" << "z" << "\n";
 
-			for (int j = 0; j < segments[i]->getSize(); j++)
+			for (int i = 0; i < segments.size(); i++)
 			{
-				stream << segments[i]->getPoint(j)->x() << "\t" << segments[i]->getPoint(j)->y() << "\n";
+				for (int j = 0; j < segments[i]->getSize(); j++)
+				{
+					stream << segments[i]->getPoint(j)->x() << "\t" << segments[i]->getPoint(j)->y() << "\n";
+				}
+
 			}
+			//when done
+			file.close();
 		}
-		//when done
-		file.close();
-	}
 
 	//segmentation related data
-	QString filename2 = "C:/Users/user/Documents/segmentationData.txt";
+	QString filename2 = QString("C:/Users/Admin/Documents/profile#%1_segmentationData.txt").arg(index + 1);
 	QFile file2(filename2);
 	if (file2.open(QIODevice::ReadWrite)) {
 		QTextStream stream(&file2);

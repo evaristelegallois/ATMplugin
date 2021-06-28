@@ -30,8 +30,7 @@ private:
     //attributes
     float*  m_x, * m_y;
     float m_p;
-    int m_n;
-    int m_j;
+    int m_n, m_j, m_maxL, m_minL = 3;
     const char* m_type;
 
     std::vector<SegmentLinearRegression*> m_segments;

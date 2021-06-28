@@ -79,7 +79,7 @@ ccPolyline* profileProcessor::segmentToProfile(std::vector<SegmentLinearRegressi
 		int end = m_inputSegment->getEndIndex();
 
 		const int n = m_inputSegment->getSize();
-		qDebug() << "nb of segment vertices" << n;
+		//qDebug() << "nb of segment vertices" << n; //last print before crash
 
 		color = m_inputSegment->getColor().x();
 
@@ -90,6 +90,8 @@ ccPolyline* profileProcessor::segmentToProfile(std::vector<SegmentLinearRegressi
 			m_outputCloud->getScalarField(sfIdx)->addElement(color);
 		}
 	}
+	qDebug() << "yo";
+	qDebug() << "cloud size" << m_outputCloud->size();
 
 	//manually adding last point
 	m_outputCloud->addPoint(CCVector3(m_inputProfilePts[m_inputProfilePts.size()-1]->x,
@@ -121,3 +123,4 @@ ccPolyline* profileProcessor::segmentToProfile(std::vector<SegmentLinearRegressi
 	qDebug() << "segment conversion OK";
 	return m_outputProfile;
 }
+
