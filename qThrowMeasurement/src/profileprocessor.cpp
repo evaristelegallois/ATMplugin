@@ -19,8 +19,6 @@ profileProcessor::~profileProcessor()
 
 QVector<QVector2D*> profileProcessor::profileToXY()
 {
-	//virtual const CCVector3* getCurrentPointCoordinates() const;
-	
 	QVector<QVector2D*> coordinates;
 	float s = 0;
 	qDebug() << "input profile OK";
@@ -37,71 +35,89 @@ QVector<QVector2D*> profileProcessor::profileToXY()
 		m_inputY[i] = A->z; //z
 		coordinates.append(new QVector2D(m_inputX[i], m_inputY[i]));
 		m_inputProfilePts.append(A); //stores the (x,y,z) coordinates for later use
+
+		if (i == m_inputProfile->size() - 2)
+		{
+			m_inputX[i+1] = s; //curvilinear abscissa (computed w/o z)
+			m_inputY[i+1] = A->z; //z
+			coordinates.append(new QVector2D(m_inputX[i+1], m_inputY[i+1]));
+			m_inputProfilePts.append(A); //stores the (x,y,z) coordinates for later use
+		}
 	}
 
-	//manually adding the last point 
+	/*//manually adding the last point 
 	coordinates.append(new QVector2D(m_inputX[m_inputProfile->size() - 1], 
 		m_inputY[m_inputProfile->size() - 1]));
-	m_inputProfilePts.append(m_inputProfile->getPoint(m_inputProfile->size() - 1));
+	m_inputProfilePts.append(m_inputProfile->getPoint(m_inputProfile->size() - 1));*/
 
+	qDebug() << "coordinates size" << coordinates.size();
 	qDebug() << "coordinates OK";
 	return coordinates;
 }
 
-ccPolyline* profileProcessor::segmentToProfile(SegmentLinearRegression* segment)
+ccPolyline* profileProcessor::segmentToProfile(std::vector<SegmentLinearRegression*> segments)
 {
-	m_inputSegment = segment;
-	const int n = m_inputSegment->getSize();
-	m_outputX = new float[n];
-	m_outputY = new float[n];
-	m_outputZ = new float[n];
-
-	qDebug() << "nb of segment vertices" << n;
 	qDebug() << "nb of profile points" << m_inputProfilePts.size();
 
 	m_outputCloud = new ccPointCloud("Vertices"); //need to rename SF in loop? or give a vector of segments
-	m_outputCloud->reserve(n);
+	m_outputCloud->reserve(m_inputProfilePts.size());
 
 	//creates a scalar field to display segments using different colors
+	//using sfs constraints us to use point clouds...
 	const char c_defaultSFName[] = "Segmentation";
 	int sfIdx = m_outputCloud->getScalarFieldIndexByName(c_defaultSFName);
 	if (sfIdx < 0)
 		sfIdx = m_outputCloud->addScalarField(c_defaultSFName);
-	m_outputCloud->getScalarField(sfIdx)->reserve(n);
+	m_outputCloud->getScalarField(sfIdx)->reserve(m_inputProfilePts.size());
 	m_outputCloud->setCurrentScalarField(sfIdx); //in?
 
-	ScalarType color = m_inputSegment->getColor().x();
-	//qDebug() << "color value" << color;
-
-	for (int i = 0; i < n; i++) //idx out of range issue w/ multiple profiles
+	ScalarType color;
+	for (int i = 0; i < segments.size(); i++)
 	{
-		m_outputCloud->addPoint(CCVector3(m_inputProfilePts[i]->x,
-			m_inputProfilePts[i]->y, m_inputProfilePts[i]->z));
-		m_outputCloud->getScalarField(sfIdx)->addElement(color);
+		m_inputSegment = segments[i];
+		int start = m_inputSegment->getStartIndex();
+		int end = m_inputSegment->getEndIndex();
+
+		const int n = m_inputSegment->getSize();
+		qDebug() << "nb of segment vertices" << n;
+
+		color = m_inputSegment->getColor().x();
+
+		for (int i = start; i < end; i++)
+		{
+			m_outputCloud->addPoint(CCVector3(m_inputProfilePts[i]->x,
+				m_inputProfilePts[i]->y, m_inputProfilePts[i]->z));
+			m_outputCloud->getScalarField(sfIdx)->addElement(color);
+		}
 	}
+
+	//manually adding last point
+	m_outputCloud->addPoint(CCVector3(m_inputProfilePts[m_inputProfilePts.size()-1]->x,
+		m_inputProfilePts[m_inputProfilePts.size()-1]->y, m_inputProfilePts[m_inputProfilePts.size()-1]->z));
+	m_outputCloud->getScalarField(sfIdx)->addElement(m_outputCloud->getPointScalarValue(m_inputProfilePts.size() - 2)); //last color
+
+	qDebug() << "point cloud size" << m_outputCloud->size();
 
 	m_outputCloud->setCurrentScalarField(sfIdx);
 	m_outputCloud->getScalarField(sfIdx)->computeMinAndMax();
 	m_outputCloud->setCurrentDisplayedScalarField(sfIdx);
 	m_outputCloud->showSF(true);
+	m_outputCloud->setPointSize(5);
 
+
+	//TO DO: rename polylines/put them into one folder
 	m_outputProfile = new ccPolyline(m_outputCloud);
 
 	m_outputProfile->setForeground(true);
-	m_outputProfile->setTempColor(ccColor::red);
-	m_outputProfile->set2DMode(true);
-	m_outputProfile->reserve(n);
-	m_outputProfile->addPointIndex(0, n);
+	//m_outputProfile->setTempColor(ccColor::red); 
+	m_outputProfile->set2DMode(false);
+	m_outputProfile->reserve(m_inputProfilePts.size());
+	m_outputProfile->addPointIndex(0, m_inputProfilePts.size());
 	m_outputProfile->setWidth(5);
 	m_outputProfile->addChild(m_outputCloud);
 
-
+	qDebug() << "polyline size" << m_outputProfile->size();
 
 	qDebug() << "segment conversion OK";
 	return m_outputProfile;
 }
-/*
-void profileProcessor::displayProfile(ccMainAppInterface* app)
-{
-	app->getActiveGLWindow()->addToDB(m_outputProfile);
-}*/

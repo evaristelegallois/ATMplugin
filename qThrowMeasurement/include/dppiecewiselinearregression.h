@@ -12,16 +12,19 @@ public:
 
     float computeModel(float x, int i, int j);
     float computeResidual(int i);
+    float computeFirstSlope(int i, int j);
     float computeSlope(int i, int j);
+    float computeFirstIntercept(int i, int j);
     float computeIntercept(int i, int j);
     float computeRScore(int i, int j);
+    float computeRSquare(int i, int j);
     float computeVScore(int i, int j);
-    float computeVariance(int i, int j);
+    float computeVar(int i, int j);
 
     int getMaximumIndex(int j);
     std::vector<SegmentLinearRegression*> computeSegmentation();
 
-    float computeArithmeticMean(float* x);
+    float computeArithmeticMean(float* x, int i, int j);
 
 private:
     //attributes

@@ -16,9 +16,6 @@
 #include <GeometricalAnalysisTools.h>
 #include <Jacobi.h>
 
-#include <QFile>
-#include <QTextStream>
-
 #include "dppiecewiselinearregression.h"
 #include "segmentlinearregression.h"
 
@@ -27,68 +24,109 @@ using namespace CCCoreLib;
 dPPiecewiseLinearRegression::dPPiecewiseLinearRegression(float* x, float* y, const int n, 
     float p, int j, const char* type) : m_x(x), m_y(y), m_n(n), m_p(p), m_j(j), m_type(type)
 {
-    //std::vector<SegmentLinearRegression*> segments = new std::vector<SegmentLinearRegression>[100]; //max nb of segments
-    //m_segments = segments;
+
 }
 
 dPPiecewiseLinearRegression::~dPPiecewiseLinearRegression()
 {
-    /*m_segments = nullptr;
-    delete m_segments;*/
+    m_segments.clear();
 }
 
 float dPPiecewiseLinearRegression::computeModel(float x, int i, int j)
 {
     return computeSlope(i,j)*x + computeIntercept(i,j);
 }
-/*
-float dPPiecewiseLinearRegression::computeResidual(int i) 
-{
-    return m_y[i] - m_b - m_a*m_x[i];
-}
-*/
 
 ////SCORING FUNCTION (r²)
 float dPPiecewiseLinearRegression::computeRScore(int i, int j)
 {
     float var1 = 0., var2 = 0.;
-    for (int k = i; k < j; k++)
+    float meanY = computeArithmeticMean(m_y, i, j);
+
+    for (int k = i; k < j+1; k++)
     {
-        var1 += pow((computeModel(m_x[k], i, j) - computeArithmeticMean(m_y)), 2);
-        var2 += pow((m_y[k] - computeArithmeticMean(m_y)), 2);
+        var1 += pow((computeModel(m_x[k], i, j) - meanY), 2);
+        var2 += (m_y[k] - meanY)* (m_y[k] - meanY);
     }
     
-    return (var1 / var2) - 1;
+    return static_cast<float>(var1 / var2) - static_cast <float>(1.);
+}
+
+float dPPiecewiseLinearRegression::computeRSquare(int i, int j)
+{
+    float var1 = 0., var2 = 0.;
+    float meanY = computeArithmeticMean(m_y, i, j);
+    float slope = computeSlope(i, j);
+    float intercept = computeIntercept(i, j);
+
+    for (int k = i; k < j+1; k++)
+    {
+        float delta_k = m_y[k] - intercept - slope * m_x[k];
+        var1 += delta_k * delta_k;
+        var2 += (m_y[k] - meanY)* (m_y[k] - meanY);
+
+        //qDebug() << "y" << m_y[k];
+        //qDebug() << "x" << m_x[k];
+    }
+
+    return static_cast <float>(1.) - static_cast<float>(var1 / var2);
 }
 
 ////SCORING FUNCTION (variance)
 float dPPiecewiseLinearRegression::computeVScore(int i, int j)
 {
     float residuals = 0.;
+    float slope = computeFirstSlope(i, j);
+    float intercept = computeFirstIntercept(i, j);
 
-    for (int k = i; k < j; k++) residuals += pow(m_y[k] - computeIntercept(i, j) 
-        - computeSlope(i, j) * m_x[k], 2);
+    /*for (int k = i; k < j; k++) residuals += pow(m_y[k] - intercept 
+        - slope * m_x[k], 2);
 
-    return -(static_cast<float>(1.) / static_cast<float>(m_n - 1.)) * residuals;
+    return -(static_cast<float>(1.) / static_cast<float>(m_n - 1.)) * residuals;*/
+
+    for (int k = i; k < j+1; k++)
+    {
+        float delta_k = m_y[k] - intercept - slope * m_x[k];
+        residuals += delta_k * delta_k;
+    }
+
+    return  (-1. * residuals / static_cast<float>(m_n - 1.));
+}
+
+float dPPiecewiseLinearRegression::computeVar(int i, int j)
+{
+    float residuals = 0.;
+    float slope = computeSlope(i, j);
+    float intercept = computeIntercept(i, j);
+
+    /*for (int k = i; k < j; k++) residuals += pow(m_y[k] - intercept
+        - slope * m_x[k], 2);
+
+    return -(static_cast<float>(1.) / static_cast<float>(m_n - 1.)) * residuals;*/
+
+    for (int k = i; k < j+1; k++)
+    {
+        float delta_k = m_y[k] - intercept - slope * m_x[k];
+        residuals += delta_k * delta_k;
+    }
+
+    return  (residuals / static_cast<float>(j+1.-i - 1.));
 }
 
 int dPPiecewiseLinearRegression::getMaximumIndex(int j)
 {
     int i = 0, i_max = 0;
-    float score = 0., maxScore = 3.40282e+038;
+    float score = 0., maxScore = /*3.40282e+038*/ -m_p;
 
-    for (int i = 0; i < j; i++)
+    for (int i = 0; i < j+1; i++)
     {
         if (m_type == "rsquare") score = computeRScore(i, j) - m_p;
         else score = computeVScore(i, j) - m_p; //default
-        //qDebug() << "score" << score;
 
         if (score < maxScore)
         {
             maxScore = score;
-            //qDebug() << "max score" << maxScore;
             i_max = i;
-            //qDebug() << "imax" << i_max;
         }
     }
 
@@ -102,42 +140,38 @@ std::vector<SegmentLinearRegression*> dPPiecewiseLinearRegression::computeSegmen
     maxI.push_front(end);
 
     //backtracing
-    while (end > 1) //for --
+    for ( ; end > 1; end)
     {
-        //qDebug() << "end" << end;
-        //qDebug() << "get imax" << getMaximumIndex(end);
         end = getMaximumIndex(end) - m_j;
         maxI.push_front(end);
     }
 
-    for (int i = 0; i < maxI.size(); i++)
-    {
-        //qDebug() << "maxI" << maxI[i];
-    }
+    if (m_j != 0) maxI[0] = 0;
 
     qDebug() << "maxI size" << maxI.size();
+
+    for (int k =0; k < maxI.size(); k++) qDebug() << "maxI" << maxI[k];
     for (int k = 0; k < maxI.size()-1; k++)
     {
-        //qDebug() << "segment loop" << k;
-        /*SegmentLinearRegression* segment = new SegmentLinearRegression(maxI[k], maxI[k+1], m_x, m_y);
+        SegmentLinearRegression* segment = new SegmentLinearRegression(maxI[k], maxI[k+1], m_x, m_y);
         segment->setSlope(computeSlope(maxI[k], maxI[k + 1]));
         segment->setIntercept(computeIntercept(maxI[k], maxI[k + 1]));
-        segment->setRSquare(computeRScore(maxI[k], maxI[k + 1]));
-        segment->setVar(computeVariance(maxI[k], maxI[k + 1]));
-        segment->setColor(QVector3D(rand() % 359 + 0, 1, 1));*/
+        segment->setRSquare(computeRSquare(maxI[k], maxI[k + 1]));
+        segment->setVar(computeVar(maxI[k], maxI[k + 1]));
+        segment->setColor(QVector3D(rand() % 359 + 0, 1, 1));
 
-        //m_segments.push_back(segment);
+        m_segments.push_back(segment);
     }
 
     return m_segments;
 }
 
-float dPPiecewiseLinearRegression::computeArithmeticMean(float* x)
+float dPPiecewiseLinearRegression::computeArithmeticMean(float* x, int i, int j)
 {
     float sum = 0.;
-    for (int i = 0; i < m_n; i++)  sum += x[i];
+    for (int k = i; k < j+1; k++) sum = sum + x[k];
 
-    return static_cast<float> (sum) / static_cast<float> (m_n);
+    return static_cast<float> (sum) / static_cast<float> (j-i+1.);
 }
 
 float dPPiecewiseLinearRegression::computeSlope(int i, int j)
@@ -152,10 +186,48 @@ float dPPiecewiseLinearRegression::computeSlope(int i, int j)
         sumXY = sumXY + m_x[k] * m_y[k];
     }*/
 
-    for (int k = i; k < j; k++)
+    float meanX = computeArithmeticMean(m_x, i, j);
+    float meanY = computeArithmeticMean(m_y, i, j);
+    //qDebug() << "meanX" << meanX;
+
+    for (int k = i; k < j+1; k++)
     {
-        sumXY += (m_x[k] - computeArithmeticMean(m_x))*(m_y[k] - computeArithmeticMean(m_y));
-        sumX2 += pow((m_x[k] - computeArithmeticMean(m_x)), 2);
+        sumXY += (m_x[k] - meanX)*(m_y[k] - meanY);
+        sumX2 += (m_x[k] - meanX)*(m_x[k] - meanX);
+    }
+
+    //compute a
+    //return static_cast<float>(m_n * sumXY - sumX * sumY) / static_cast<float>(m_n * sumX2 - sumX * sumX);
+    //to edit bc it suspiciously seems like it uses the forbidden variance computation
+
+    return static_cast<float> (sumXY) / static_cast<float> (sumX2);
+}
+
+float dPPiecewiseLinearRegression::computeFirstSlope(int i, int j)
+{
+    float sumX = 0., sumY = 0., sumX2 = 0., sumXY = 0.;
+
+    /*for (int k = i; k < j; k++)
+    {
+        sumX = sumX + m_x[k];
+        sumX2 = sumX2 + m_x[k] * m_x[k];
+        sumY = sumY + m_y[k];
+        sumXY = sumXY + m_x[k] * m_y[k];
+    }*/
+
+    for (int k = 0; k < m_n; k++)
+    {
+        sumX = sumX + m_x[k];
+        sumY = sumY + m_y[k];
+    }
+
+    float meanX = static_cast<float> (sumX) / static_cast<float> (m_n);
+    float meanY = static_cast<float> (sumY) / static_cast<float> (m_n);
+
+    for (int k = i; k < j+1; k++)
+    {
+        sumXY += (m_x[k] - meanX) * (m_y[k] - meanY);
+        sumX2 += (m_x[k] - meanX) * (m_x[k] - meanX);
     }
 
     //compute a
@@ -170,20 +242,42 @@ float dPPiecewiseLinearRegression::computeIntercept(int i, int j)
     float sumX = 0.;
     float sumY = 0.;
 
-    for (int k = i; k < j; k++)
+    for (int k = i; k < j+1; k++)
     {
         sumX = sumX + m_x[k];
         sumY = sumY + m_y[k];
     }
 
     //compute b
-    return static_cast<float>(sumY - computeSlope(i,j) * sumX) / static_cast<float>(m_n);
+    return static_cast<float>(sumY - computeSlope(i,j) * sumX) / static_cast<float>(j+1.-i);
 }
 
+float dPPiecewiseLinearRegression::computeFirstIntercept(int i, int j)
+{
+    float sumX = 0.;
+    float sumY = 0.;
+
+    for (int k = i; k < j+1; k++)
+    {
+        sumX = sumX + m_x[k];
+        sumY = sumY + m_y[k];
+    }
+
+    //compute b
+    return static_cast<float>(sumY - computeFirstSlope(i, j) * sumX) / static_cast<float>(m_n);
+}
+
+/*
 float dPPiecewiseLinearRegression::computeVariance(int i, int j)
 {
     float var = 0.;
-    for (int k = i; k < j; k++) var += pow(m_x[k] - computeArithmeticMean(m_x), 2);
+    float meanX = computeArithmeticMean(m_x, i, j);
+    qDebug() << "mean" << meanX;
+    for (int k = i; k < j; k++) 
+    { 
+        var += (m_x[k] - meanX)*(m_x[k] - meanX);
+    }
 
-    return var;
+    return static_cast<float> (var) / static_cast<float>(m_n - 1.);
 }
+*/

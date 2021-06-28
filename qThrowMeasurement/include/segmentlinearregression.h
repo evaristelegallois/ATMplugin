@@ -21,7 +21,7 @@ public:
     int getStartIndex();
     int getEndIndex();
     int getSize();
-    QVector2D getPoint(int index);
+    QVector2D* getPoint(int index);
 
     QVector3D getColor();
 
@@ -42,7 +42,7 @@ private:
     int m_startInd, m_endInd, m_size;
     QVector3D m_color;
 
-    QVector2D* m_points;
+    QVector<QVector2D*> m_points;
 };
 
 #endif // SEGMENTLINEARREGRESSION_H

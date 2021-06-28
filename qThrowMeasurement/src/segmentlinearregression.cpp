@@ -4,22 +4,15 @@
 SegmentLinearRegression::SegmentLinearRegression(int startInd, int endInd, float* x, float* y) :
 	m_startInd(startInd), m_endInd(endInd)
 {
-	//allocate size for m_points?
-	m_points = new QVector2D[(unsigned int) (endInd - startInd)];
+	m_size = endInd - startInd;
 
-	int k = 0;
-	for (int i = m_startInd; i < m_endInd + 1; i++)
-	{
-		m_points[i] = QVector2D(x[i], y[i]);
-		k++;
-	}
-	m_size = k;
+	for (int i = m_startInd; i < m_endInd + 1; i++) m_points.push_back(new QVector2D(x[i], y[i]));
 	m_a = 0, m_b = 0, m_r = 0, m_rsquare = 0, m_var = 0;
 }
 
 SegmentLinearRegression::~SegmentLinearRegression()
 {
-	m_points = nullptr;
+	m_points.clear();
 }
 
 float SegmentLinearRegression::getVar()
@@ -67,7 +60,7 @@ int SegmentLinearRegression::getSize()
 	return m_size;
 }
 
-QVector2D SegmentLinearRegression::getPoint(int index)
+QVector2D* SegmentLinearRegression::getPoint(int index)
 {
 	return m_points[index];
 }

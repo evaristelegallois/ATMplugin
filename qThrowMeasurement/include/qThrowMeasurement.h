@@ -63,6 +63,8 @@ public:
 	ScalarType computeAngularDifference(double theta1, double theta2);
 	ScalarType getAngleFromVerticality(ccPointCloud* cloud);
 
+	void exportData(std::vector<SegmentLinearRegression*> segments);
+
 	// Inherited from ccStdPluginInterface
 	void onNewSelection( const ccHObject::Container &selectedEntities ) override;
 	QList<QAction *> getActions() override;
@@ -141,6 +143,6 @@ private:
 	QAction* m_computeThrowMeasurement;
 	QAction* m_computeAngularDifference;
 
-	profileProcessor* m_processor;
+	std::vector<profileProcessor*> m_processors;
 
 };

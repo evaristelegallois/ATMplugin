@@ -20,7 +20,7 @@ public:
     ~profileProcessor();
 
     QVector<QVector2D*> profileToXY();
-    ccPolyline* segmentToProfile(SegmentLinearRegression* segment);
+    ccPolyline* segmentToProfile(std::vector<SegmentLinearRegression*> segments);
 
     void displayProfile(ccMainAppInterface* app);
 

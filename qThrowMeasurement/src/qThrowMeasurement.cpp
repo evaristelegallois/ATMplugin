@@ -48,6 +48,9 @@
 #include "ActionA.h"
 #include "ActionA.cpp"
 
+#include <QFile>
+#include <QTextStream>
+
 #include "ccFacet.h"
 
 //Qt
@@ -76,7 +79,6 @@ qThrowMeasurement::qThrowMeasurement( QObject *parent )
 	, m_computeAngularDifference(nullptr)
 	, m_associatedWin (nullptr)
 	, m_mainAppInterface (nullptr)
-	, m_processor (nullptr)
 {
 }
 
@@ -141,6 +143,8 @@ void qThrowMeasurement::computeThrowMeasurement()
 			ccPolyline * polyline = ccHObjectCaster::ToPolyline(m_app->getSelectedEntities()[i]);
 			profiles.push_back(polyline);
 		}
+		qDebug() << "nb of selected entities from poly" << profiles.size();
+
 	}
 	qDebug() << "start segmentation";
 	computeSegmentation(profiles);
@@ -167,69 +171,89 @@ void qThrowMeasurement::computeSegmentation(std::vector<ccPolyline*> profiles)
 	if (atmDlg.scoreComboBox->currentText() == "Variance of residuals") s_type = "var";
 	else s_type = "rsquare";
 
+	qDebug() << "p" << s_p;
+
 	std::vector<QVector<QVector2D*>> inputs;
 	inputs.reserve(profiles.size());
+	std::vector<ccPolyline*> outputs;
+	outputs.reserve(profiles.size());
+	m_processors.reserve(profiles.size());
 
 	for (int i = 0; i < profiles.size(); i++)
 	{
-		QVector<QVector2D*> list;
-		m_processor = new profileProcessor(profiles[i]);
-		inputs.push_back(m_processor->profileToXY()); //need to make a list of processor to avoid them getting mixed up
+		m_processors.push_back(new profileProcessor(profiles[i]));
+		inputs.push_back(m_processors[i]->profileToXY()); 
 		qDebug() << "profile XY OK";
-
 	}
-
-	int k = 0; //remove if size given by user
-	//float* x, * y;
 
 	for (int i = 0; i < profiles.size(); i++)
 	{
 		const int n = inputs[i].size();
-		//inputs[i].reserve(n);
+		inputs[i].reserve(n);
 		float* x = new float[n];
 		float* y = new float[n];
 
 		for (int j = 0; j < n; j++)
 		{
-			//qDebug() << inputs[i][j]->x();
 			x[j] = inputs[i][j]->x();
 			y[j] = inputs[i][j]->y();
-			k++;
 		}
 
 		//get linear regression parameters here
-		dPPiecewiseLinearRegression* model = new dPPiecewiseLinearRegression(x, y, k, s_p, s_jumps, s_type);
+		dPPiecewiseLinearRegression* model = new dPPiecewiseLinearRegression(x, y, n, s_p, s_jumps, s_type);
 		std::vector<SegmentLinearRegression*> segments = model->computeSegmentation();
 		qDebug() << "segmentation model OK";
-		qDebug() << "nb of segments" << segments.size();
 
-		/*std::vector<ccPolyline*> outputs;
-		outputs.reserve(segments.size());
-		for (int i = 0; i < profiles.size(); i++)
-		{
-			//profileProcessor* processor = new profileProcessor(segments[i]);
-			outputs.push_back(m_processor->segmentToProfile(segments[i]));
-			qDebug() << "outputs OK";
-			ccPointCloud* pc = ccHObjectCaster::ToPointCloud(outputs[i]);
-			m_app->addToDB(outputs[i]);
-			m_app->redrawAll();
-		}*/
+		outputs.push_back(m_processors[i]->segmentToProfile(segments));
+		qDebug() << "outputs OK";
+		m_app->addToDB(outputs[i]);
+
+		exportData(segments);
 	}
+
+	m_app->redrawAll();
+	m_processors.clear();
+	inputs.clear();
+	outputs.clear();
 }
 
-void qThrowMeasurement::displayProfile(ccPointCloud* pc)
+void qThrowMeasurement::exportData(std::vector<SegmentLinearRegression*> segments)
 {
-	//create scalar field to host the fusion result
-	//const char c_defaultSFName[] = "Segmentation P = " + std::to_string(s_p);
-	//int sfIdx = pc->getScalarFieldIndexByName("Segmentation");
-	qDebug() << "get nb of SF" << pc->getNumberOfScalarFields();
+	//coordinates
+	QString filename = "C:/Users/user/Documents/coordinates.txt";
+	QFile file(filename);
+	if (file.open(QIODevice::ReadWrite)) {
+		QTextStream stream(&file);
+		stream << "curvilinear abscissa" << "\t" << "z" << "\n";
 
-	//pc->setCurrentScalarField(sfIdx);
-	//pc->getScalarField(sfIdx)->computeMinAndMax();
-	//pc->setCurrentDisplayedScalarField(sfIdx);
-	//pc->showSF(true);
+		for (int i = 0; i < segments.size(); i++)
+		{
 
-	//m_app->redrawAll();
+			for (int j = 0; j < segments[i]->getSize(); j++)
+			{
+				stream << segments[i]->getPoint(j)->x() << "\t" << segments[i]->getPoint(j)->y() << "\n";
+			}
+		}
+		//when done
+		file.close();
+	}
+
+	//segmentation related data
+	QString filename2 = "C:/Users/user/Documents/segmentationData.txt";
+	QFile file2(filename2);
+	if (file2.open(QIODevice::ReadWrite)) {
+		QTextStream stream(&file2);
+		stream << "start" << "\t" << "end" << "\t" << "intercept" << "\t" << "slope" << "\t" << "r2" << "\t" << "var" << "\n"; 
+
+		for (int i = 0; i < segments.size(); i++)
+		{
+			stream << segments[i]->getStartIndex() << "\t" << segments[i]->getEndIndex() << "\t" << segments[i]->getIntercept()
+				<< "\t" << segments[i]->getSlope() << "\t" << segments[i]->getRSquare() << "\t" << segments[i]->getVar() << "\n";
+		}
+
+		//when done
+		file2.close();
+	}
 }
 
 ////3D FUNCTIONNALITY
