@@ -65,6 +65,11 @@ QVector2D* SegmentLinearRegression::getPoint(int index)
 	return m_points[index];
 }
 
+float SegmentLinearRegression::getAssociatedP()
+{
+	return m_p;
+}
+
 QVector3D SegmentLinearRegression::getColor()
 {
 	return m_color;
@@ -111,4 +116,9 @@ void SegmentLinearRegression::setEndIndex(int endInd)
 void SegmentLinearRegression::setColor(QVector3D color)
 {
 	m_color = color;
+}
+
+void SegmentLinearRegression::setAssociatedP(float p)
+{
+	m_p = p;
 }

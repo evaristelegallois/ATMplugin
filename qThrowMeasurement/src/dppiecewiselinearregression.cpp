@@ -126,7 +126,8 @@ int dPPiecewiseLinearRegression::getMaximumIndex(int j)
 {
     m_maxL = j;
     int i = 0, i_max = 0;
-    float score = 0., maxScore = -3.40282e+038, minScore = -m_p, currentScore = 0.;
+    float score = 0., maxScore = -3.40282e+038, prevScore = -m_p, currentScore = 0.;
+    float* scores = new float[m_maxL];
 
     for (int i = (j - m_maxL); i < (j - m_minL); i++)
     {
@@ -134,15 +135,15 @@ int dPPiecewiseLinearRegression::getMaximumIndex(int j)
         if (m_type == "rsquare")
         {
             currentScore = computeRScore(i, j);
-            score = minScore + currentScore - m_p;
+            score = prevScore + currentScore - m_p;
         }
         else
         {
             currentScore = computeVScore(i, j);
-            if (currentScore < minScore) minScore = currentScore;
-            score = minScore + currentScore - m_p; //default
-            qDebug() << "score" << score << "currentScore" << currentScore;
-            qDebug() << "minScore" << minScore << "maxScore" << maxScore;
+            score = prevScore + currentScore - m_p; //default
+            if (score > prevScore) prevScore = /*currentScore*/score;
+            //qDebug() << "score" << score << "currentScore" << currentScore;
+            //qDebug() << "minScore" << minScore << "maxScore" << maxScore;
         }
 
         if (score > maxScore)
@@ -199,6 +200,7 @@ std::vector<SegmentLinearRegression*> dPPiecewiseLinearRegression::computeSegmen
         segment->setIntercept(computeIntercept(maxI[k], maxI[k + 1]));
         segment->setRSquare(computeRSquare(maxI[k], maxI[k + 1]));
         segment->setVar(computeVar(maxI[k], maxI[k + 1]));
+        segment->setAssociatedP(m_p);
         segment->setColor(QVector3D(rand() % 359 + 0, 1, 1));
 
         m_segments.push_back(segment);

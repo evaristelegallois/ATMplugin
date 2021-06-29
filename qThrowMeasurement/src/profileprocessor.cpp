@@ -6,6 +6,8 @@ profileProcessor::profileProcessor(ccPolyline* profile) : m_inputProfile(profile
 	const int n = profile->size();
 	m_inputX = new float[n];
 	m_inputY = new float[n];
+
+	m_profileID = m_inputProfile->getUniqueIDForDisplay();
 }
 
 profileProcessor::~profileProcessor()
@@ -23,6 +25,7 @@ QVector<QVector2D*> profileProcessor::profileToXY()
 	float s = 0;
 	qDebug() << "input profile OK";
 	qDebug() << "profile size" << m_inputProfile->size();
+	
 	for (int i = 0; i < m_inputProfile->size()-1; i++) 
 	{
 		const CCVector3* A = m_inputProfile->getPoint(i);
@@ -59,11 +62,15 @@ ccPolyline* profileProcessor::segmentToProfile(std::vector<SegmentLinearRegressi
 {
 	qDebug() << "nb of profile points" << m_inputProfilePts.size();
 
-	m_outputCloud = new ccPointCloud("Vertices"); //need to rename SF in loop? or give a vector of segments
+	QString name = QString("Vertices (Profile ID #%1)").arg(m_profileID);
+	m_outputCloud = new ccPointCloud(name.toStdString().c_str()); //need to rename SF in loop? or give a vector of segments
 	m_outputCloud->reserve(m_inputProfilePts.size());
 
 	//creates a scalar field to display segments using different colors
 	//using sfs constraints us to use point clouds...
+	name = QString("Segmentation P=%1").arg(segments[0]->getAssociatedP());
+	//const char* c_defaultSFName = name.toStdString().c_str();
+
 	const char c_defaultSFName[] = "Segmentation";
 	int sfIdx = m_outputCloud->getScalarFieldIndexByName(c_defaultSFName);
 	if (sfIdx < 0)
@@ -90,8 +97,6 @@ ccPolyline* profileProcessor::segmentToProfile(std::vector<SegmentLinearRegressi
 			m_outputCloud->getScalarField(sfIdx)->addElement(color);
 		}
 	}
-	qDebug() << "yo";
-	qDebug() << "cloud size" << m_outputCloud->size();
 
 	//manually adding last point
 	m_outputCloud->addPoint(CCVector3(m_inputProfilePts[m_inputProfilePts.size()-1]->x,
@@ -108,7 +113,7 @@ ccPolyline* profileProcessor::segmentToProfile(std::vector<SegmentLinearRegressi
 
 
 	//TO DO: rename polylines/put them into one folder
-	m_outputProfile = new ccPolyline(m_outputCloud);
+	m_outputProfile = new ccPolyline(m_outputCloud, m_profileID);
 
 	m_outputProfile->setForeground(true);
 	//m_outputProfile->setTempColor(ccColor::red); 
@@ -122,5 +127,10 @@ ccPolyline* profileProcessor::segmentToProfile(std::vector<SegmentLinearRegressi
 
 	qDebug() << "segment conversion OK";
 	return m_outputProfile;
+}
+
+char profileProcessor::getProfileID()
+{
+	return m_profileID;
 }
 

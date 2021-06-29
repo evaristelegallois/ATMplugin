@@ -21,6 +21,7 @@ public:
 
     QVector<QVector2D*> profileToXY();
     ccPolyline* segmentToProfile(std::vector<SegmentLinearRegression*> segments);
+    char getProfileID();
 
     void displayProfile(ccMainAppInterface* app);
 
@@ -30,6 +31,7 @@ private:
     SegmentLinearRegression * m_inputSegment;
     float * m_inputX, * m_inputY, * m_outputX, * m_outputY, * m_outputZ; //no need of input Z bc 2D
     QVector<const CCVector3 *> m_inputProfilePts;
+    int m_profileID;
 
 };
 

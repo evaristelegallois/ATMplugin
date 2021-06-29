@@ -21,6 +21,7 @@ public:
     int getStartIndex();
     int getEndIndex();
     int getSize();
+    float getAssociatedP();
     QVector2D* getPoint(int index);
 
     QVector3D getColor();
@@ -33,11 +34,12 @@ public:
     void setEnd(QVector2D end);
     void setStartIndex(int startInd);
     void setEndIndex(int endInd);
+    void setAssociatedP(float p);
 
     void setColor(QVector3D color);
 
 private:
-    float m_a, m_b, m_r, m_rsquare, m_var;
+    float m_a, m_b, m_r, m_rsquare, m_var, m_p;
     QVector2D m_start, m_end;
     int m_startInd, m_endInd, m_size;
     QVector3D m_color;
