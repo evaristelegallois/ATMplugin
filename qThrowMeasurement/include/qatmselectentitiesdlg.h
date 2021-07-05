@@ -7,9 +7,9 @@
 //qCC_db
 #include <ccHObject.h>
 
-namespace Ui {
+/*namespace Ui {
 class qATMSelectEntitiesDlg;
-}
+}*/
 
 class qATMSelectEntitiesDlg : public QDialog, public Ui::qATMSelectEntitiesDlg
 {

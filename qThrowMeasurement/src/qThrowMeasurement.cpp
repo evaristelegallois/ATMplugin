@@ -58,8 +58,12 @@
 #include <QMainWindow>
 #include <QVector2D>
 #include <QVector>
+
+
+//CCCoreLib
 #include <GeometricalAnalysisTools.h>
 #include <Jacobi.h>
+
 
 using namespace CCCoreLib;
 
@@ -175,6 +179,8 @@ void qThrowMeasurement::computeSegmentation(std::vector<ccPolyline*> profiles)
 
 	qDebug() << "p" << s_p;
 
+	ccPolyline* generatrix = importGeneratrixFromDB();
+
 	std::vector<QVector<QVector2D*>> inputs;
 	inputs.reserve(profiles.size());
 	std::vector<ccPolyline*> outputs;
@@ -183,7 +189,7 @@ void qThrowMeasurement::computeSegmentation(std::vector<ccPolyline*> profiles)
 
 	for (int i = 0; i < profiles.size(); i++)
 	{
-		m_processors.push_back(new profileProcessor(profiles[i]));
+		m_processors.push_back(new profileProcessor(profiles[i], generatrix));
 		inputs.push_back(m_processors[i]->profileToXY()); 
 		qDebug() << "profile XY OK";
 	}
@@ -249,7 +255,8 @@ void qThrowMeasurement::computeSegmentation(std::vector<ccPolyline*> profiles)
 		*/
 
 		exportData(segments, i);
-		importGeneratrixFromDB();
+
+
 	}
 
 	m_app->redrawAll();
@@ -310,11 +317,11 @@ void qThrowMeasurement::exportData(std::vector<SegmentLinearRegression*> segment
 }
 
 
-void qThrowMeasurement::importGeneratrixFromDB()
+ccPolyline* qThrowMeasurement::importGeneratrixFromDB()
 {
 	QMainWindow* mainWindow = m_app->getMainWindow();
 	if (!mainWindow)
-		return;
+		ccLog::Error("Main window not found!");
 
 	ccHObject* root = m_app->dbRootObject();
 	ccHObject::Container polylines;
@@ -323,19 +330,22 @@ void qThrowMeasurement::importGeneratrixFromDB()
 		root->filterChildren(polylines, true, CC_TYPES::POLY_LINE);
 	}
 
+	ccPolyline* poly;
 	if (!polylines.empty())
 	{
 
 		int index;
 		index = qATMSelectEntitiesDlg::SelectEntity(polylines);
 
-		ccPolyline* poly = static_cast<ccPolyline*>(polylines[index]);
-		//get coordinates here
+		poly = static_cast<ccPolyline*>(polylines[index]);
+		//get coordinates here?
 	}
 	else
 	{
 		ccLog::Error("No polyline in DB!");
 	}
+
+	return poly;
 }
 
 ////3D FUNCTIONNALITY

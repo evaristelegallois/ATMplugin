@@ -1,7 +1,8 @@
 #include "profileprocessor.h"
 #include <QDebug>
 
-profileProcessor::profileProcessor(ccPolyline* profile) : m_inputProfile(profile)
+profileProcessor::profileProcessor(ccPolyline* profile, ccPolyline* generatrix) :
+	m_inputProfile(profile), m_inputGeneratrix(generatrix)
 {
 	const int n = profile->size();
 	m_inputX = new float[n];
@@ -23,10 +24,17 @@ QVector<QVector2D*> profileProcessor::profileToXY()
 {
 
 	//gets generatrix x position on profiles
-	for (int i = 0; i < m_generatrix->size(); i++)
+	for (int i = 0; i < m_inputGeneratrix->size(); i++)
 	{
-		if (m_generatrix->getPoint(i)->x == m_inputProfile->getPoint(i)->x)
-			m_genPtIdx = i;
+		for (int j = 0; j < m_inputProfile->size(); j++) 
+		{
+			qDebug() << "gen x" << m_inputGeneratrix->getPoint(i)->x << "prof x" << m_inputProfile->getPoint(j)->x;
+			if (m_inputGeneratrix->getPoint(i)->x == m_inputProfile->getPoint(j)->x)
+				m_genPtIdx = j;
+				//m_genX = i; //to compute throw along generatrix
+		}
+
+		//qDebug() << "print gen idx" << m_genPtIdx;
 	}
 
 	QVector<QVector2D*> coordinates;

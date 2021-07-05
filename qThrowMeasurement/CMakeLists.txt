@@ -17,4 +17,7 @@ if ( PLUGIN_ATM_STANDARD )
 	
 	# set dependencies to necessary libraries
 	# target_link_libraries( ${PROJECT_NAME} LIB1 )
+
+	find_package(Qt5Charts)
+	target_link_libraries(${PROJECT_NAME} Qt5::Charts)
 endif()

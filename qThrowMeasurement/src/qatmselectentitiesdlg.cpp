@@ -29,6 +29,7 @@ qATMSelectEntitiesDlg::qATMSelectEntitiesDlg(
 
 }
 
+
 int qATMSelectEntitiesDlg::SelectEntity(const ccHObject::Container& entities,
 	int selectedIndex/*=0*/,
 	QWidget* parent/*=0*/,

@@ -3,6 +3,11 @@
 
 #include <ui_ATMDialog.h>
 
+#include <QtCharts>
+#include <QChart>
+
+using namespace QtCharts;
+
 class ccMainAppInterface;
 class ccPolyline;
 
@@ -14,11 +19,14 @@ public:
     ATMDialog(ccMainAppInterface* app);
     //~ATMDialog();
 
+    QChart* createLineChart() const;
+
 protected:
 
 	//! Path length
 	double m_pathLength;
 	ccMainAppInterface* app;
+    QList<QChartView*> m_charts;
 
 /*
 private:

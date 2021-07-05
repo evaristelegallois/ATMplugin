@@ -64,7 +64,7 @@ public:
 	ScalarType getAngleFromVerticality(ccPointCloud* cloud);
 
 	void exportData(std::vector<SegmentLinearRegression*> segments, int index);
-	void importGeneratrixFromDB();
+	ccPolyline* importGeneratrixFromDB();
 
 	// Inherited from ccStdPluginInterface
 	void onNewSelection( const ccHObject::Container &selectedEntities ) override;

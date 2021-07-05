@@ -14,7 +14,7 @@
 class profileProcessor
 {
 public:
-    profileProcessor(ccPolyline* profile);
+    profileProcessor(ccPolyline* profile, ccPolyline* generatrix);
     profileProcessor(SegmentLinearRegression* segment);
 
     ~profileProcessor();
@@ -26,7 +26,7 @@ public:
     void displayProfile(ccMainAppInterface* app);
 
 private:
-    ccPolyline * m_inputProfile, * m_outputProfile, * m_generatrix;
+    ccPolyline * m_inputProfile, * m_outputProfile, * m_inputGeneratrix;
     ccPointCloud* m_outputCloud;
     SegmentLinearRegression * m_inputSegment;
     float * m_inputX, * m_inputY, * m_outputX, * m_outputY, * m_outputZ; //no need of input Z bc 2D

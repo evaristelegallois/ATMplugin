@@ -102,7 +102,7 @@
      </layout>
     </widget>
    </item>
-   <item row="1" column="0">
+   <item row="2" column="0">
     <layout class="QHBoxLayout" name="horizontalLayout_4">
      <item>
       <spacer name="horizontalSpacer">
@@ -125,6 +125,9 @@
       </widget>
      </item>
     </layout>
+   </item>
+   <item row="1" column="0">
+    <layout class="QGridLayout" name="baseLayout"/>
    </item>
   </layout>
  </widget>
