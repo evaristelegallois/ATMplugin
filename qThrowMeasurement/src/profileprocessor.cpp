@@ -21,6 +21,14 @@ profileProcessor::~profileProcessor()
 
 QVector<QVector2D*> profileProcessor::profileToXY()
 {
+
+	//gets generatrix x position on profiles
+	for (int i = 0; i < m_generatrix->size(); i++)
+	{
+		if (m_generatrix->getPoint(i)->x == m_inputProfile->getPoint(i)->x)
+			m_genPtIdx = i;
+	}
+
 	QVector<QVector2D*> coordinates;
 	float s = 0;
 	qDebug() << "input profile OK";
@@ -63,7 +71,7 @@ ccPolyline* profileProcessor::segmentToProfile(std::vector<SegmentLinearRegressi
 	qDebug() << "nb of profile points" << m_inputProfilePts.size();
 
 	QString name = QString("Vertices (Profile ID #%1)").arg(m_profileID);
-	m_outputCloud = new ccPointCloud(name.toStdString().c_str()); //need to rename SF in loop? or give a vector of segments
+	m_outputCloud = new ccPointCloud(name.toStdString().c_str()); 
 	m_outputCloud->reserve(m_inputProfilePts.size());
 
 	//creates a scalar field to display segments using different colors
@@ -76,7 +84,7 @@ ccPolyline* profileProcessor::segmentToProfile(std::vector<SegmentLinearRegressi
 	if (sfIdx < 0)
 		sfIdx = m_outputCloud->addScalarField(c_defaultSFName);
 	m_outputCloud->getScalarField(sfIdx)->reserve(m_inputProfilePts.size());
-	m_outputCloud->setCurrentScalarField(sfIdx); //in?
+	m_outputCloud->setCurrentScalarField(sfIdx);
 
 	ScalarType color;
 	for (int i = 0; i < segments.size(); i++)
@@ -86,7 +94,6 @@ ccPolyline* profileProcessor::segmentToProfile(std::vector<SegmentLinearRegressi
 		int end = m_inputSegment->getEndIndex();
 
 		const int n = m_inputSegment->getSize();
-		//qDebug() << "nb of segment vertices" << n; //last print before crash
 
 		color = m_inputSegment->getColor().x();
 
@@ -94,7 +101,8 @@ ccPolyline* profileProcessor::segmentToProfile(std::vector<SegmentLinearRegressi
 		{
 			m_outputCloud->addPoint(CCVector3(m_inputProfilePts[i]->x,
 				m_inputProfilePts[i]->y, m_inputProfilePts[i]->z));
-			m_outputCloud->getScalarField(sfIdx)->addElement(color);
+			if (i == m_genPtIdx) m_outputCloud->getScalarField(sfIdx)->addElement(359); //assigns one predefined color to generatrix position
+			else m_outputCloud->getScalarField(sfIdx)->addElement(color);
 		}
 	}
 
@@ -111,12 +119,9 @@ ccPolyline* profileProcessor::segmentToProfile(std::vector<SegmentLinearRegressi
 	m_outputCloud->showSF(true);
 	m_outputCloud->setPointSize(5);
 
-
-	//TO DO: rename polylines/put them into one folder
 	m_outputProfile = new ccPolyline(m_outputCloud, m_profileID);
 
 	m_outputProfile->setForeground(true);
-	//m_outputProfile->setTempColor(ccColor::red); 
 	m_outputProfile->set2DMode(false);
 	m_outputProfile->reserve(m_inputProfilePts.size());
 	m_outputProfile->addPointIndex(0, m_inputProfilePts.size());

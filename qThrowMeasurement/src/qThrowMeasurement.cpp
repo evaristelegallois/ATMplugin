@@ -44,6 +44,7 @@
 #include "qThrowMeasurement.h"
 #include "ccMainAppInterface.h"
 #include "atmdialog.h"
+#include "qatmselectentitiesdlg.h"
 
 #include "ActionA.h"
 #include "ActionA.cpp"
@@ -170,6 +171,7 @@ void qThrowMeasurement::computeSegmentation(std::vector<ccPolyline*> profiles)
 	else s_jumps = 0;
 	if (atmDlg.scoreComboBox->currentText() == "Variance of residuals") s_type = "var";
 	else s_type = "rsquare";
+	//ask for user input: select generatrix
 
 	qDebug() << "p" << s_p;
 
@@ -247,6 +249,7 @@ void qThrowMeasurement::computeSegmentation(std::vector<ccPolyline*> profiles)
 		*/
 
 		exportData(segments, i);
+		importGeneratrixFromDB();
 	}
 
 	m_app->redrawAll();
@@ -257,11 +260,19 @@ void qThrowMeasurement::computeSegmentation(std::vector<ccPolyline*> profiles)
 	outputs.clear();
 }
 
+/*
+void qThrowMeasurement::computeThrowMeasurement(std::vector<ccPolyline*> inputs)
+{
+	//gets throw value
+
+	//compute cumulative throw along somewhat curvilinear abscissa
+}
+*/
 void qThrowMeasurement::exportData(std::vector<SegmentLinearRegression*> segments, int index)
 {
 	//coordinates
 
-		QString filename = QString("C:/Users/Admin/Documents/profile#%1_coordinates.txt").arg(index+1);
+		QString filename = QString("C:/Users/user/Documents/profile#%1_coordinates.txt").arg(index+1);
 		QFile file(filename);
 		qDebug() << filename;
 		if (file.open(QIODevice::ReadWrite)) {
@@ -281,7 +292,7 @@ void qThrowMeasurement::exportData(std::vector<SegmentLinearRegression*> segment
 		}
 
 	//segmentation related data
-	QString filename2 = QString("C:/Users/Admin/Documents/profile#%1_segmentationData.txt").arg(index + 1);
+	QString filename2 = QString("C:/Users/user/Documents/profile#%1_segmentationData.txt").arg(index + 1);
 	QFile file2(filename2);
 	if (file2.open(QIODevice::ReadWrite)) {
 		QTextStream stream(&file2);
@@ -295,6 +306,35 @@ void qThrowMeasurement::exportData(std::vector<SegmentLinearRegression*> segment
 
 		//when done
 		file2.close();
+	}
+}
+
+
+void qThrowMeasurement::importGeneratrixFromDB()
+{
+	QMainWindow* mainWindow = m_app->getMainWindow();
+	if (!mainWindow)
+		return;
+
+	ccHObject* root = m_app->dbRootObject();
+	ccHObject::Container polylines;
+	if (root)
+	{
+		root->filterChildren(polylines, true, CC_TYPES::POLY_LINE);
+	}
+
+	if (!polylines.empty())
+	{
+
+		int index;
+		index = qATMSelectEntitiesDlg::SelectEntity(polylines);
+
+		ccPolyline* poly = static_cast<ccPolyline*>(polylines[index]);
+		//get coordinates here
+	}
+	else
+	{
+		ccLog::Error("No polyline in DB!");
 	}
 }
 

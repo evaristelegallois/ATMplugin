@@ -26,12 +26,12 @@ public:
     void displayProfile(ccMainAppInterface* app);
 
 private:
-    ccPolyline * m_inputProfile, * m_outputProfile;
+    ccPolyline * m_inputProfile, * m_outputProfile, * m_generatrix;
     ccPointCloud* m_outputCloud;
     SegmentLinearRegression * m_inputSegment;
     float * m_inputX, * m_inputY, * m_outputX, * m_outputY, * m_outputZ; //no need of input Z bc 2D
     QVector<const CCVector3 *> m_inputProfilePts;
-    int m_profileID;
+    int m_profileID, m_genPtIdx;
 
 };
 

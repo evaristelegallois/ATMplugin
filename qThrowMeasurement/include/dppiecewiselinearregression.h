@@ -21,7 +21,7 @@ public:
     float computeVScore(int i, int j);
     float computeVar(int i, int j);
 
-    int getMaximumIndex(int j);
+    int* getMaximumIndexes();
     std::vector<SegmentLinearRegression*> computeSegmentation();
 
     float computeArithmeticMean(float* x, int i, int j);
@@ -32,6 +32,9 @@ private:
     float m_p;
     int m_n, m_j, m_maxL, m_minL = 3;
     const char* m_type;
+
+    int* i_max;
+    float* scores, * maxScores;
 
     std::vector<SegmentLinearRegression*> m_segments;
 };

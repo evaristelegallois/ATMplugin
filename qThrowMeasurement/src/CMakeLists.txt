@@ -7,4 +7,5 @@ target_sources( ${PROJECT_NAME}
 		${CMAKE_CURRENT_LIST_DIR}/profileprocessor.cpp
 		${CMAKE_CURRENT_LIST_DIR}/segmentlinearregression.cpp
 		${CMAKE_CURRENT_LIST_DIR}/dppiecewiselinearregression.cpp
+		${CMAKE_CURRENT_LIST_DIR}/qatmselectentitiesdlg.cpp
 )
