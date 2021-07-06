@@ -4,7 +4,7 @@
 SegmentLinearRegression::SegmentLinearRegression(int startInd, int endInd, float* x, float* y) :
 	m_startInd(startInd), m_endInd(endInd)
 {
-	m_size = endInd - startInd;
+	m_size = endInd - startInd + 1;
 
 	for (int i = m_startInd; i < m_endInd + 1; i++) m_points.push_back(new QVector2D(x[i], y[i]));
 	m_a = 0, m_b = 0, m_r = 0, m_rsquare = 0, m_var = 0;
@@ -37,12 +37,12 @@ float SegmentLinearRegression::getIntercept()
 
 QVector2D SegmentLinearRegression::getStart()
 {
-	return m_start;
+	return QVector2D(m_points[0]->x(), m_points[0]->y());
 }
 
 QVector2D SegmentLinearRegression::getEnd()
 {
-	return m_end;
+	return QVector2D(m_points[m_size-1]->x(), m_points[m_size-1]->y());
 }
 
 int SegmentLinearRegression::getStartIndex()
@@ -94,7 +94,8 @@ void SegmentLinearRegression::setIntercept(float intercept)
 {
 	m_b = intercept;
 }
-void SegmentLinearRegression::setStart(QVector2D start)
+
+/*void SegmentLinearRegression::setStart(QVector2D start)
 {
 	m_start = start;
 }
@@ -103,6 +104,8 @@ void SegmentLinearRegression::setEnd(QVector2D end)
 {
 	m_end = end;
 }
+*/
+
 void SegmentLinearRegression::setStartIndex(int startInd)
 {
 	m_startInd = startInd;

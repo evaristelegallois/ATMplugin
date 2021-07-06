@@ -22,21 +22,6 @@ profileProcessor::~profileProcessor()
 
 QVector<QVector2D*> profileProcessor::profileToXY()
 {
-
-	//gets generatrix x position on profiles
-	for (int i = 0; i < m_inputGeneratrix->size(); i++)
-	{
-		for (int j = 0; j < m_inputProfile->size(); j++) 
-		{
-			qDebug() << "gen x" << m_inputGeneratrix->getPoint(i)->x << "prof x" << m_inputProfile->getPoint(j)->x;
-			if (m_inputGeneratrix->getPoint(i)->x == m_inputProfile->getPoint(j)->x)
-				m_genPtIdx = j;
-				//m_genX = i; //to compute throw along generatrix
-		}
-
-		//qDebug() << "print gen idx" << m_genPtIdx;
-	}
-
 	QVector<QVector2D*> coordinates;
 	float s = 0;
 	qDebug() << "input profile OK";
@@ -104,14 +89,42 @@ ccPolyline* profileProcessor::segmentToProfile(std::vector<SegmentLinearRegressi
 		const int n = m_inputSegment->getSize();
 
 		color = m_inputSegment->getColor().x();
+		QVector2D intercept;
+
+		//gets generatrix x position on profiles
+		for (int j = 0; j < m_inputGeneratrix->size() - 1; j++)
+		{
+			QVector2D genStart = QVector2D(m_inputGeneratrix->getPoint(j)->x, m_inputGeneratrix->getPoint(j)->y);
+			QVector2D genEnd = QVector2D(m_inputGeneratrix->getPoint(j+1)->x, m_inputGeneratrix->getPoint(j+1)->y);
+			intercept = getIntersection(genStart, genEnd, m_inputSegment->getStart(), m_inputSegment->getEnd());
+
+			qDebug() << "genstart" << genStart << "genend" << genEnd;
+			qDebug() << "start" << m_inputSegment->getStart() << "end" << m_inputSegment->getEnd();
+			//qDebug() << "intercept" << intercept.x() << intercept.y();
+			if (intercept != QVector2D(0, 0))
+			{
+				//m_genPtIdx = i;
+				break;
+			}
+			//qDebug() << "print gen idx" << m_genPtIdx;
+			//if (m_genPtIdx != 0) break;
+
+
+		}
 
 		for (int i = start; i < end; i++)
 		{
 			m_outputCloud->addPoint(CCVector3(m_inputProfilePts[i]->x,
 				m_inputProfilePts[i]->y, m_inputProfilePts[i]->z));
-			if (i == m_genPtIdx) m_outputCloud->getScalarField(sfIdx)->addElement(359); //assigns one predefined color to generatrix position
+			if (intercept.x() + 0.01*intercept.x() < m_inputProfilePts[i]->x || intercept.x() - 0.01 * intercept.x() < m_inputProfilePts[i]->x)
+			{
+				m_genPtIdx = i;
+				m_outputCloud->getScalarField(sfIdx)->addElement(359); //assigns one predefined color to generatrix position
+			}
 			else m_outputCloud->getScalarField(sfIdx)->addElement(color);
 		}
+
+
 	}
 
 	//manually adding last point
@@ -141,6 +154,100 @@ ccPolyline* profileProcessor::segmentToProfile(std::vector<SegmentLinearRegressi
 	qDebug() << "segment conversion OK";
 	return m_outputProfile;
 }
+
+//gets intersection between two segments, caracterized by two points each (start & end)
+QVector2D profileProcessor::getIntersection(QVector2D p1, QVector2D p2, QVector2D q1, QVector2D q2)
+{
+	QVector2D s1, s2, i;
+	float s, t;
+	s1 = p2 - p1;
+	s2 = q2 - q1;
+
+	/*s = (-s1.y() * (p1.x() - q1.x()) + s1.x() * (p1.y() - q1.y())) / (-s2.x() * s1.y() + s1.x() * s2.y());
+	t = (s2.x() * (p1.y() - q1.y()) - s2.y() * (p1.x() - q1.x())) / (-s2.x() * s1.y() + s1.x() * s2.y());
+
+	//qDebug() << "s" << s << "t" << t;
+	//qDebug() << "s1" << s1.x() << "s2" << s2.x();
+
+	if (s >= 0 && s <= 1 && t >= 0 && t <= 1) i = QVector2D(p1.x() + (t * s1.x()), p1.y() + (t * s1.y()));
+	else i = QVector2D(0, 0); // No collision
+
+	return i; 
+	*/
+
+	
+	
+	/*//dx = x2 - x1; 
+	//dy = y2 - y1;
+
+	//m1 = dy / dx;
+	float m1 = s1.y() / s1.x(); //slope
+	// y = mx + c
+	// intercept c = y - mx
+	float c1 = p1.y() - m1 * p1.x(); // which is same as y2 - slope * x2
+
+
+	//dx = x2 - x1;
+	//dy = y2 - y1;
+
+	float m2 = s2.y() / s2.x();
+	float c2 = q2.y() - m2 * q2.x(); // which is same as y2 - slope * x2
+
+	if ((m1 - m2) == 0)
+		qDebug() << "No Intersection between the lines";
+	else
+
+	{
+		i = QVector2D((c2 - c1) / (m1 - m2), m1 * (c2 - c1) / (m1 - m2) + c1);
+	}
+
+	qDebug() << "m1" << m1 << "m2" << m2;
+	qDebug() << "i" << i;
+
+	return i;*/
+
+	/*
+	int get_line_intersection(float p0_x, float p0_y, float p1_x, float p1_y, 
+    float p2_x, float p2_y, float p3_x, float p3_y, float *i_x, float *i_y)
+{
+    float s02_x, s02_y, s10_x, s10_y, s32_x, s32_y, s_numer, t_numer, denom, t;
+    s10_x = p1_x - p0_x;
+    s10_y = p1_y - p0_y;
+    s32_x = p3_x - p2_x;
+    s32_y = p3_y - p2_y;
+
+    denom = s10_x * s32_y - s32_x * s10_y;
+    if (denom == 0)
+        return 0; // Collinear
+    bool denomPositive = denom > 0;
+
+    s02_x = p0_x - p2_x;
+    s02_y = p0_y - p2_y;
+    s_numer = s10_x * s02_y - s10_y * s02_x;
+    if ((s_numer < 0) == denomPositive)
+        return 0; // No collision
+
+    t_numer = s32_x * s02_y - s32_y * s02_x;
+    if ((t_numer < 0) == denomPositive)
+        return 0; // No collision
+
+    if (((s_numer > denom) == denomPositive) || ((t_numer > denom) == denomPositive))
+        return 0; // No collision
+    // Collision detected
+    t = t_numer / denom;
+    if (i_x != NULL)
+        *i_x = p0_x + (t * s10_x);
+    if (i_y != NULL)
+        *i_y = p0_y + (t * s10_y);
+
+    return 1;
+}
+	*/
+	
+
+
+}
+
 
 char profileProcessor::getProfileID()
 {
