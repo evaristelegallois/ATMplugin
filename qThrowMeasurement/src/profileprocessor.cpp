@@ -26,6 +26,34 @@ QVector<QVector2D*> profileProcessor::profileToXY()
 	float s = 0;
 	qDebug() << "input profile OK";
 	qDebug() << "profile size" << m_inputProfile->size();
+
+	QVector2D intercept;
+	//gets generatrix x position on profiles
+	for (int j = 0; j < m_inputGeneratrix->size() - 1; j++)
+	{
+		for (int i = 0; i < m_inputProfile->size() - 1; i++)
+		{
+
+			//find a way toa void computing every segment entire length
+			QVector2D genStart = QVector2D(m_inputGeneratrix->getPoint(j)->x, m_inputGeneratrix->getPoint(j)->y);
+			QVector2D genEnd = QVector2D(m_inputGeneratrix->getPoint(j + 1)->x, m_inputGeneratrix->getPoint(j + 1)->y);
+			QVector2D profStart = QVector2D(m_inputProfile->getPoint(i)->x, m_inputProfile->getPoint(i)->y);
+			QVector2D profEnd = QVector2D(m_inputProfile->getPoint(i+1)->x, m_inputProfile->getPoint(i + 1)->y);
+			intercept = getIntersection(genStart, genEnd, profStart, profEnd);
+
+			qDebug() << "intercept" << intercept.x() << intercept.y();
+
+			if (intercept.x() + 0.01 * intercept.x() < m_inputProfile->getPoint(i)->x
+				|| intercept.x() - 0.01 * intercept.x() < m_inputProfile->getPoint(i)->x)
+			{
+				m_genPtIdx = i;
+				break;
+			}
+		}
+		qDebug() << "print gen idx" << m_genPtIdx;
+		if (m_genPtIdx != 0) break;
+
+	}
 	
 	for (int i = 0; i < m_inputProfile->size()-1; i++) 
 	{
@@ -89,36 +117,13 @@ ccPolyline* profileProcessor::segmentToProfile(std::vector<SegmentLinearRegressi
 		const int n = m_inputSegment->getSize();
 
 		color = m_inputSegment->getColor().x();
-		QVector2D intercept;
-
-		//gets generatrix x position on profiles
-		for (int j = 0; j < m_inputGeneratrix->size() - 1; j++)
-		{
-			QVector2D genStart = QVector2D(m_inputGeneratrix->getPoint(j)->x, m_inputGeneratrix->getPoint(j)->y);
-			QVector2D genEnd = QVector2D(m_inputGeneratrix->getPoint(j+1)->x, m_inputGeneratrix->getPoint(j+1)->y);
-			intercept = getIntersection(genStart, genEnd, m_inputSegment->getStart(), m_inputSegment->getEnd());
-
-			qDebug() << "genstart" << genStart << "genend" << genEnd;
-			qDebug() << "start" << m_inputSegment->getStart() << "end" << m_inputSegment->getEnd();
-			//qDebug() << "intercept" << intercept.x() << intercept.y();
-			if (intercept != QVector2D(0, 0))
-			{
-				//m_genPtIdx = i;
-				break;
-			}
-			//qDebug() << "print gen idx" << m_genPtIdx;
-			//if (m_genPtIdx != 0) break;
-
-
-		}
 
 		for (int i = start; i < end; i++)
 		{
 			m_outputCloud->addPoint(CCVector3(m_inputProfilePts[i]->x,
 				m_inputProfilePts[i]->y, m_inputProfilePts[i]->z));
-			if (intercept.x() + 0.01*intercept.x() < m_inputProfilePts[i]->x || intercept.x() - 0.01 * intercept.x() < m_inputProfilePts[i]->x)
+			if ( i == m_genPtIdx )
 			{
-				m_genPtIdx = i;
 				m_outputCloud->getScalarField(sfIdx)->addElement(359); //assigns one predefined color to generatrix position
 			}
 			else m_outputCloud->getScalarField(sfIdx)->addElement(color);
@@ -155,6 +160,7 @@ ccPolyline* profileProcessor::segmentToProfile(std::vector<SegmentLinearRegressi
 	return m_outputProfile;
 }
 
+
 //gets intersection between two segments, caracterized by two points each (start & end)
 QVector2D profileProcessor::getIntersection(QVector2D p1, QVector2D p2, QVector2D q1, QVector2D q2)
 {
@@ -163,7 +169,35 @@ QVector2D profileProcessor::getIntersection(QVector2D p1, QVector2D p2, QVector2
 	s1 = p2 - p1;
 	s2 = q2 - q1;
 
-	/*s = (-s1.y() * (p1.x() - q1.x()) + s1.x() * (p1.y() - q1.y())) / (-s2.x() * s1.y() + s1.x() * s2.y());
+	if ((-s2.x() * s1.y() + s1.x() * s2.y()) == 0) i = QVector2D(0, 0); // No collision
+	bool isDenomPositive = (-s2.x() * s1.y() + s1.x() * s2.y()) > 0;
+
+	if (((s1.x() * (p1.y() - q1.y()) - s1.y() * (p1.x() - q1.x())) < 0) == isDenomPositive) i = QVector2D(0, 0); // No collision
+	if (((s2.x() * (p1.y() - q1.y()) - s2.y() * (p1.x() - q1.x())) < 0) == isDenomPositive) i = QVector2D(0, 0); // No collision
+
+	if ((((s1.x() * (p1.y() - q1.y()) - s1.y() * (p1.x() - q1.x())) > (-s2.x() * s1.y() + s1.x() * s2.y())) == isDenomPositive)
+		|| (((s2.x() * (p1.y() - q1.y()) - s2.y() * (p1.x() - q1.x())) > (-s2.x() * s1.y() + s1.x() * s2.y())) == isDenomPositive))
+		i = QVector2D(0, 0); // No collision
+
+
+	s = (-s1.y() * (p1.x() - q1.x()) + s1.x() * (p1.y() - q1.y())) / (-s2.x() * s1.y() + s1.x() * s2.y());
+	t = (s2.x() * (p1.y() - q1.y()) - s2.y() * (p1.x() - q1.x())) / (-s2.x() * s1.y() + s1.x() * s2.y());
+
+	qDebug() << "s" << s << "t" << t;
+	//qDebug() << "s1" << s1.x() << "s2" << s2.x();
+
+	if (t >= 0 && t <= 1) i = QVector2D(p1.x() + (t * s1.x()), p1.y() + (t * s1.y()));
+	else i = QVector2D(0, 0); // No collision
+
+	return i;
+
+	/*
+	QVector2D s1, s2, i;
+	float s, t;
+	s1 = p2 - p1;
+	s2 = q2 - q1;
+
+	s = (-s1.y() * (p1.x() - q1.x()) + s1.x() * (p1.y() - q1.y())) / (-s2.x() * s1.y() + s1.x() * s2.y());
 	t = (s2.x() * (p1.y() - q1.y()) - s2.y() * (p1.x() - q1.x())) / (-s2.x() * s1.y() + s1.x() * s2.y());
 
 	//qDebug() << "s" << s << "t" << t;
@@ -172,12 +206,10 @@ QVector2D profileProcessor::getIntersection(QVector2D p1, QVector2D p2, QVector2
 	if (s >= 0 && s <= 1 && t >= 0 && t <= 1) i = QVector2D(p1.x() + (t * s1.x()), p1.y() + (t * s1.y()));
 	else i = QVector2D(0, 0); // No collision
 
-	return i; 
+	return i;
 	*/
 
-	
-	
-	/*//dx = x2 - x1; 
+	/*//dx = x2 - x1;
 	//dy = y2 - y1;
 
 	//m1 = dy / dx;
@@ -205,45 +237,6 @@ QVector2D profileProcessor::getIntersection(QVector2D p1, QVector2D p2, QVector2
 	qDebug() << "i" << i;
 
 	return i;*/
-
-	/*
-	int get_line_intersection(float p0_x, float p0_y, float p1_x, float p1_y, 
-    float p2_x, float p2_y, float p3_x, float p3_y, float *i_x, float *i_y)
-{
-    float s02_x, s02_y, s10_x, s10_y, s32_x, s32_y, s_numer, t_numer, denom, t;
-    s10_x = p1_x - p0_x;
-    s10_y = p1_y - p0_y;
-    s32_x = p3_x - p2_x;
-    s32_y = p3_y - p2_y;
-
-    denom = s10_x * s32_y - s32_x * s10_y;
-    if (denom == 0)
-        return 0; // Collinear
-    bool denomPositive = denom > 0;
-
-    s02_x = p0_x - p2_x;
-    s02_y = p0_y - p2_y;
-    s_numer = s10_x * s02_y - s10_y * s02_x;
-    if ((s_numer < 0) == denomPositive)
-        return 0; // No collision
-
-    t_numer = s32_x * s02_y - s32_y * s02_x;
-    if ((t_numer < 0) == denomPositive)
-        return 0; // No collision
-
-    if (((s_numer > denom) == denomPositive) || ((t_numer > denom) == denomPositive))
-        return 0; // No collision
-    // Collision detected
-    t = t_numer / denom;
-    if (i_x != NULL)
-        *i_x = p0_x + (t * s10_x);
-    if (i_y != NULL)
-        *i_y = p0_y + (t * s10_y);
-
-    return 1;
-}
-	*/
-	
 
 
 }

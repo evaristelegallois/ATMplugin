@@ -19,7 +19,7 @@ public:
     ATMDialog(ccMainAppInterface* app);
     //~ATMDialog();
 
-    QChart* createLineChart() const;
+    QChart* createLineChart(float* data, int* id, int n) const;
 
 protected:
 
