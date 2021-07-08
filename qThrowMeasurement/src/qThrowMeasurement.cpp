@@ -43,8 +43,8 @@
 
 #include "qThrowMeasurement.h"
 #include "ccMainAppInterface.h"
-#include "atmdialog.h"
 #include "qatmselectentitiesdlg.h"
+#include "atmdisplayprofilesdlg.h"
 
 #include "ActionA.h"
 #include "ActionA.cpp"
@@ -84,6 +84,7 @@ qThrowMeasurement::qThrowMeasurement( QObject *parent )
 	, m_computeAngularDifference(nullptr)
 	, m_associatedWin (nullptr)
 	, m_mainAppInterface (nullptr)
+	, m_atmDlg(nullptr)
 {
 }
 
@@ -152,13 +153,26 @@ void qThrowMeasurement::computeThrowMeasurement()
 
 	}
 	qDebug() << "start segmentation";
+
+	assert(m_app);
+	if (!m_app)
+		return;
+
+	m_atmDlg = new ATMDialog(m_app);
+
+	m_atmDlg->pDoubleSpinBox->setValue(s_p);
+	m_atmDlg->jCheckBox->setChecked(s_jumps);
+
+	if (!m_atmDlg->exec())
+		return;
+
 	computeSegmentation(profiles);
 	qDebug() << "end segmentation";
 }
 
 void qThrowMeasurement::computeSegmentation(std::vector<ccPolyline*> profiles)
 {
-	assert(m_app);
+	/*assert(m_app);
 	if (!m_app)
 		return;
 
@@ -169,11 +183,11 @@ void qThrowMeasurement::computeSegmentation(std::vector<ccPolyline*> profiles)
 
 	if (!atmDlg.exec())
 		return;
-
-	s_p = atmDlg.pDoubleSpinBox->value();
-	if (atmDlg.jCheckBox->isChecked()) s_jumps = 1;
+    */
+	s_p = m_atmDlg->pDoubleSpinBox->value();
+	if (m_atmDlg->jCheckBox->isChecked()) s_jumps = 1;
 	else s_jumps = 0;
-	if (atmDlg.scoreComboBox->currentText() == "Variance of residuals") s_type = "var";
+	if (m_atmDlg->scoreComboBox->currentText() == "Variance of residuals") s_type = "var";
 	else s_type = "rsquare";
 	//ask for user input: select generatrix
 
@@ -255,6 +269,8 @@ void qThrowMeasurement::computeSegmentation(std::vector<ccPolyline*> profiles)
 		*/
 
 		exportData(segments, i);
+		ATMDisplayProfilesDlg* ATMDPDlg = new ATMDisplayProfilesDlg();
+		ATMDPDlg->displayProfile(segments);
 
 
 	}

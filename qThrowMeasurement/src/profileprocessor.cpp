@@ -41,7 +41,7 @@ QVector<QVector2D*> profileProcessor::profileToXY()
 			QVector2D profEnd = QVector2D(m_inputProfile->getPoint(i+1)->x, m_inputProfile->getPoint(i + 1)->y);
 			intercept = getIntersection(genStart, genEnd, profStart, profEnd);
 
-			qDebug() << "intercept" << intercept.x() << intercept.y();
+			//qDebug() << "intercept" << intercept.x() << intercept.y();
 
 			if (intercept.x() + 0.01 * intercept.x() < m_inputProfile->getPoint(i)->x
 				|| intercept.x() - 0.01 * intercept.x() < m_inputProfile->getPoint(i)->x)
@@ -183,7 +183,7 @@ QVector2D profileProcessor::getIntersection(QVector2D p1, QVector2D p2, QVector2
 	s = (-s1.y() * (p1.x() - q1.x()) + s1.x() * (p1.y() - q1.y())) / (-s2.x() * s1.y() + s1.x() * s2.y());
 	t = (s2.x() * (p1.y() - q1.y()) - s2.y() * (p1.x() - q1.x())) / (-s2.x() * s1.y() + s1.x() * s2.y());
 
-	qDebug() << "s" << s << "t" << t;
+	//qDebug() << "s" << s << "t" << t;
 	//qDebug() << "s1" << s1.x() << "s2" << s2.x();
 
 	if (t >= 0 && t <= 1) i = QVector2D(p1.x() + (t * s1.x()), p1.y() + (t * s1.y()));

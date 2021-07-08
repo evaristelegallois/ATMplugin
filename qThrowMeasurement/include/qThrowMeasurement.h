@@ -21,6 +21,7 @@
 #include "Neighbourhood.h"
 #include "dppiecewiselinearregression.h"
 #include "profileprocessor.h"
+#include "atmdialog.h"
 
 //! Example qCC plugin
 /** Replace 'ExamplePlugin' by your own plugin class name throughout and then
@@ -77,6 +78,8 @@ protected:
 
 	//! Associated interface
 	ccMainAppInterface* m_mainAppInterface;
+
+	ATMDialog* m_atmDlg;
 
 
 protected:

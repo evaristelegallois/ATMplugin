@@ -8,4 +8,5 @@ target_sources( ${PROJECT_NAME}
 		${CMAKE_CURRENT_LIST_DIR}/segmentlinearregression.cpp
 		${CMAKE_CURRENT_LIST_DIR}/dppiecewiselinearregression.cpp
 		${CMAKE_CURRENT_LIST_DIR}/qatmselectentitiesdlg.cpp
+		${CMAKE_CURRENT_LIST_DIR}/atmdisplayprofilesdlg.cpp
 )
