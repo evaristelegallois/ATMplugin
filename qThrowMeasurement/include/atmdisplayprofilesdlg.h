@@ -22,10 +22,14 @@ class ATMDisplayProfilesDlg : public QDialog, public Ui::ATMDisplayProfilesDlg
     Q_OBJECT
 
 public:
-    explicit ATMDisplayProfilesDlg(QWidget *parent = nullptr);
-    void displayProfile(std::vector<SegmentLinearRegression*> entities,
-        int selectedIndex = 0, QWidget* parent = 0);
+    explicit ATMDisplayProfilesDlg(std::vector<std::vector<SegmentLinearRegression*>> entities, 
+        QWidget* parent = nullptr);
+    void displayProfile(int selectedIndex = 0, QWidget* parent = 0);
     //~ATMDisplayProfilesDlg();
+
+    void exportDataAsTxt();
+    void exportAllDataAsTxt();
+    void exportDataAsImg();
 
 private:
     QChart* createLineChart(float* x, float* y, int n) const;
@@ -34,7 +38,9 @@ private:
     //Ui::ATMDisplayProfilesDlg *ui;
 
     QList<QChartView*> m_charts;
+    QChart* m_chart;
     QChartView* m_chartView;
+    std::vector<std::vector<SegmentLinearRegression*>> m_entities;
 };
 
 #endif // ATMDISPLAYPROFILESDLG_H

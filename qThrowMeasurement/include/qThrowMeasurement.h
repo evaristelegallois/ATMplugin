@@ -147,6 +147,6 @@ private:
 	QAction* m_computeThrowMeasurement;
 	QAction* m_computeAngularDifference;
 
-	std::vector<profileProcessor*> m_processors;
+
 
 };

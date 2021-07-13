@@ -68,12 +68,6 @@
 using namespace CCCoreLib;
 
 
-//semi-persistent dialog values
-static float s_p = 1.00;
-static const char* s_type = "var";
-static int s_size, s_jumps = 0;
-
-
 // Default constructor:
 //	- pass the Qt resource path to the info.json file (from <yourPluginName>.qrc file) 
 //  - constructor should mainly be used to initialize actions and other members
@@ -158,210 +152,16 @@ void qThrowMeasurement::computeThrowMeasurement()
 	if (!m_app)
 		return;
 
-	m_atmDlg = new ATMDialog(m_app);
-
-	m_atmDlg->pDoubleSpinBox->setValue(s_p);
-	m_atmDlg->jCheckBox->setChecked(s_jumps);
+	m_atmDlg = new ATMDialog(m_app, profiles);
+	m_atmDlg->setModal(false);
 
 	if (!m_atmDlg->exec())
 		return;
 
-	computeSegmentation(profiles);
+	//m_atmDlg->computeSegmentation();
+
+	//computeSegmentation(profiles);
 	qDebug() << "end segmentation";
-}
-
-void qThrowMeasurement::computeSegmentation(std::vector<ccPolyline*> profiles)
-{
-	/*assert(m_app);
-	if (!m_app)
-		return;
-
-	ATMDialog atmDlg(m_app);
-
-	atmDlg.pDoubleSpinBox->setValue(s_p);
-	atmDlg.jCheckBox->setChecked(s_jumps);
-
-	if (!atmDlg.exec())
-		return;
-    */
-	s_p = m_atmDlg->pDoubleSpinBox->value();
-	if (m_atmDlg->jCheckBox->isChecked()) s_jumps = 1;
-	else s_jumps = 0;
-	if (m_atmDlg->scoreComboBox->currentText() == "Variance of residuals") s_type = "var";
-	else s_type = "rsquare";
-	//ask for user input: select generatrix
-
-	qDebug() << "p" << s_p;
-
-	ccPolyline* generatrix = importGeneratrixFromDB();
-
-	std::vector<QVector<QVector2D*>> inputs;
-	inputs.reserve(profiles.size());
-	std::vector<ccPolyline*> outputs;
-	outputs.reserve(profiles.size());
-	m_processors.reserve(profiles.size());
-
-	for (int i = 0; i < profiles.size(); i++)
-	{
-		m_processors.push_back(new profileProcessor(profiles[i], generatrix));
-		inputs.push_back(m_processors[i]->profileToXY()); 
-		qDebug() << "profile XY OK";
-	}
-
-	for (int i = 0; i < profiles.size(); i++)
-	{
-		const int n = inputs[i].size();
-		inputs[i].reserve(n);
-		float* x = new float[n];
-		float* y = new float[n];
-
-		for (int j = 0; j < n; j++)
-		{
-			x[j] = inputs[i][j]->x();
-			y[j] = inputs[i][j]->y();
-		}
-
-		//get linear regression parameters here
-		dPPiecewiseLinearRegression* model = new dPPiecewiseLinearRegression(x, y, n, s_p, s_jumps, s_type);
-		std::vector<SegmentLinearRegression*> segments = model->computeSegmentation();
-		qDebug() << "segmentation model OK";
-
-		outputs.push_back(m_processors[i]->segmentToProfile(segments)); // ISSUE HERE invalid vector subscript
-		qDebug() << "outputs OK";
-		m_app->addToDB(outputs[i]);
-
-		/*
-		if (outputs.empty())
-			return;
-
-		//we only export 'temporary' objects
-		unsigned exportCount = outputs.size();
-
-		if (!exportCount)
-		{
-			//nothing to do
-			ccLog::Warning("[qThrowMeasurement] All segments are already in DB");
-			return;
-		}
-
-		//ccHObject* destEntity = ccHObject::New("ATMPlugin", "0", "Segmentation results"); //default group -> ID = 0
-		//New(const QString & pluginId, const QString & classId, const char* name = nullptr);
-		//assert(destEntity);
-
-		ccHObject toSave("Segmentation results");
-
-		QMainWindow* mainWin = m_app->getMainWindow();
-
-		//export entites
-		for (auto& output : outputs)
-		{
-
-				//destEntity->addChild(output);
-			toSave.addChild(output);
-			//output->setDisplay_recursive(toSave->getDisplay());
-				//output.isInDB = true;
-				//output->setDisplay_recursive(destEntity->getDisplay());
-				m_app->addToDB(output, false, false);
-			
-		}
-
-		ccLog::Print(QString("[qThrowMeasurement] %1 segmentation(s) computed").arg(exportCount));
-		*/
-
-		exportData(segments, i);
-		ATMDisplayProfilesDlg* ATMDPDlg = new ATMDisplayProfilesDlg();
-		ATMDPDlg->displayProfile(segments);
-
-
-	}
-
-	m_app->redrawAll();
-
-	//release memory
-	m_processors.clear();
-	inputs.clear();
-	outputs.clear();
-}
-
-/*
-void qThrowMeasurement::computeThrowMeasurement(std::vector<ccPolyline*> inputs)
-{
-	//gets throw value
-
-	//compute cumulative throw along somewhat curvilinear abscissa
-}
-*/
-void qThrowMeasurement::exportData(std::vector<SegmentLinearRegression*> segments, int index)
-{
-	//coordinates
-
-		QString filename = QString("C:/Users/user/Documents/profile#%1_coordinates.txt").arg(index+1);
-		QFile file(filename);
-		qDebug() << filename;
-		if (file.open(QIODevice::ReadWrite)) {
-			QTextStream stream(&file);
-			stream << "curvilinear abscissa" << "\t" << "z" << "\n";
-
-			for (int i = 0; i < segments.size(); i++)
-			{
-				for (int j = 0; j < segments[i]->getSize(); j++)
-				{
-					stream << segments[i]->getPoint(j)->x() << "\t" << segments[i]->getPoint(j)->y() << "\n";
-				}
-
-			}
-			//when done
-			file.close();
-		}
-
-	//segmentation related data
-	QString filename2 = QString("C:/Users/user/Documents/profile#%1_segmentationData.txt").arg(index + 1);
-	QFile file2(filename2);
-	if (file2.open(QIODevice::ReadWrite)) {
-		QTextStream stream(&file2);
-		stream << "start" << "\t" << "end" << "\t" << "intercept" << "\t" << "slope" << "\t" << "r2" << "\t" << "var" << "\n"; 
-
-		for (int i = 0; i < segments.size(); i++)
-		{
-			stream << segments[i]->getStartIndex() << "\t" << segments[i]->getEndIndex() << "\t" << segments[i]->getIntercept()
-				<< "\t" << segments[i]->getSlope() << "\t" << segments[i]->getRSquare() << "\t" << segments[i]->getVar() << "\n";
-		}
-
-		//when done
-		file2.close();
-	}
-}
-
-
-ccPolyline* qThrowMeasurement::importGeneratrixFromDB()
-{
-	QMainWindow* mainWindow = m_app->getMainWindow();
-	if (!mainWindow)
-		ccLog::Error("Main window not found!");
-
-	ccHObject* root = m_app->dbRootObject();
-	ccHObject::Container polylines;
-	if (root)
-	{
-		root->filterChildren(polylines, true, CC_TYPES::POLY_LINE);
-	}
-
-	ccPolyline* poly;
-	if (!polylines.empty())
-	{
-
-		int index;
-		index = qATMSelectEntitiesDlg::SelectEntity(polylines);
-
-		poly = static_cast<ccPolyline*>(polylines[index]);
-		//get coordinates here?
-	}
-	else
-	{
-		ccLog::Error("No polyline in DB!");
-	}
-
-	return poly;
 }
 
 ////3D FUNCTIONNALITY

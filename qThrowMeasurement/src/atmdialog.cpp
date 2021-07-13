@@ -2,6 +2,8 @@
 #include "ui_atmdialog.h"
 
 #include "qThrowMeasurement.h"
+#include "qatmselectentitiesdlg.h"
+#include "atmdisplayprofilesdlg.h"
 
 //qCC_plugins
 #include "ccMainAppInterface.h"
@@ -21,20 +23,26 @@
 
 using namespace QtCharts;
 
-ATMDialog::ATMDialog(ccMainAppInterface* app) :
+//semi-persistent dialog values
+static float s_p = 1.00;
+static const char* s_type = "var";
+static int s_size, s_jumps = 0;
+
+ATMDialog::ATMDialog(ccMainAppInterface* app, std::vector<ccPolyline*> profiles) :
     QDialog(app ? app->getMainWindow() : nullptr),
     Ui::ATMDialog(),
-	app(app)
+	m_app(app),
+    m_profiles(profiles)
 {
     setupUi(this);
 
 	//connect(step, static_cast<void (QDoubleSpinBox::*)(double)> (&QDoubleSpinBox::valueChanged), this, &ATMDialog::onStepChanged);
     
-    //connect(computeMain, &QPushButton::released, this, ATMDialog::computeSegmentation);
-    //connect(displayProfilesBtn, &QPushButton::released, this, ATMDialog::displayProfilesDlg);
-    //connect(genFromDBBtn, &QPushButton::released, this, ATMDialog::importGeneratrixFromDB);
+    connect(computeMain, &QPushButton::released, this, &ATMDialog::computeSegmentation);
+    connect(displayProfilesBtn, &QPushButton::released, this, &ATMDialog::displayProfilesDlg);
+    connect(genFromDBBtn, &QPushButton::released, this, &ATMDialog::importGeneratrixFromDB);
     //connect(genFromTxtBtn, &QPushButton::released, this, ATMDialog::importGeneratrixFromTxt);
-    //connect(saveAsTxtBtn, &QPushButton::released, this, ATMDialog::exportDataAsTxt);
+    connect(saveAsTxtBtn, &QPushButton::released, this, &ATMDialog::exportDataAsTxt);
     //connect(saveAsImgBtn, &QPushButton::released, this, ATMDialog::exportDataAsImg);
 
 	QChartView* chartView;
@@ -43,12 +51,12 @@ ATMDialog::ATMDialog(ccMainAppInterface* app) :
     int* id = new int[10];
 	chartView = new QChartView(createLineChart(data, id, 10));
 	baseLayout->addWidget(chartView, 1, 2);
-	m_charts << chartView;
+	//m_charts << chartView;
 
 
     //can get m_app as a parameter from qThrowMeasurement!!!!!! or use app??
 
-    app->dbRootObject(); //nice
+    //m_app->dbRootObject(); //nice
 }
 
 //LINE CHART FOR CUMULATIVE DISPLACEMENT
@@ -83,11 +91,161 @@ QChart* ATMDialog::createLineChart(float* data, int* id, int n) const
     return chart;
 }
 
-/*void ATMDialog::computeSegmentation()
+
+void ATMDialog::computeSegmentation()
 {
-    qThrowMeasurement::computeSegmentation();
+	s_p = this->pDoubleSpinBox->value();
+	if (this->jCheckBox->isChecked()) s_jumps = 1;
+	else s_jumps = 0;
+	if (this->scoreComboBox->currentText() == "Variance of residuals") s_type = "var";
+	else s_type = "rsquare";
+
+	if (m_generatrix == nullptr) 
+	{
+		QMessageBox msgBox;
+		msgBox.setText("Please select a generatrix.");
+		msgBox.exec();
+		return;
+	}
+
+	qDebug() << "p" << s_p;
+
+	std::vector<QVector<QVector2D*>> inputs;
+	inputs.reserve(m_profiles.size());
+	std::vector<ccPolyline*> outputs;
+	outputs.reserve(m_profiles.size());
+	m_processors.reserve(m_profiles.size());
+	m_segmentList.reserve(m_profiles.size());
+
+	for (int i = 0; i < m_profiles.size(); i++)
+	{
+		m_processors.push_back(new profileProcessor(m_profiles[i], m_generatrix));
+		inputs.push_back(m_processors[i]->profileToXY());
+		qDebug() << "profile XY OK";
+	}
+
+	for (int i = 0; i < m_profiles.size(); i++)
+	{
+		const int n = inputs[i].size();
+		inputs[i].reserve(n);
+		float* x = new float[n];
+		float* y = new float[n];
+
+		for (int j = 0; j < n; j++)
+		{
+			x[j] = inputs[i][j]->x();
+			y[j] = inputs[i][j]->y();
+		}
+
+		//get linear regression parameters here
+		dPPiecewiseLinearRegression* model = new dPPiecewiseLinearRegression(x, y, n, s_p, s_jumps, s_type);
+		m_segments = model->computeSegmentation();
+		m_segmentList.push_back(m_segments);
+
+		qDebug() << "list segments size" << m_segmentList.size();
+		qDebug() << "segmentation model OK";
+
+		outputs.push_back(m_processors[i]->segmentToProfile(m_segments)); // ISSUE HERE invalid vector subscript
+		qDebug() << "outputs OK";
+		m_app->addToDB(outputs[i]);
+
+		/*
+		if (outputs.empty())
+			return;
+
+		//we only export 'temporary' objects
+		unsigned exportCount = outputs.size();
+
+		if (!exportCount)
+		{
+			//nothing to do
+			ccLog::Warning("[qThrowMeasurement] All segments are already in DB");
+			return;
+		}
+
+		//ccHObject* destEntity = ccHObject::New("ATMPlugin", "0", "Segmentation results"); //default group -> ID = 0
+		//New(const QString & pluginId, const QString & classId, const char* name = nullptr);
+		//assert(destEntity);
+
+		ccHObject toSave("Segmentation results");
+
+		QMainWindow* mainWin = m_app->getMainWindow();
+
+		//export entites
+		for (auto& output : outputs)
+		{
+
+				//destEntity->addChild(output);
+			toSave.addChild(output);
+			//output->setDisplay_recursive(toSave->getDisplay());
+				//output.isInDB = true;
+				//output->setDisplay_recursive(destEntity->getDisplay());
+				m_app->addToDB(output, false, false);
+
+		}
+
+		ccLog::Print(QString("[qThrowMeasurement] %1 segmentation(s) computed").arg(exportCount));
+		*/
+	}
+	//compute displacement
+	//compute cumulative displacement
+	m_app->redrawAll();
+
+	//release memory
+	m_profiles.clear();
+	m_processors.clear();
+	m_segments.clear();
+	m_segmentList.clear();
+	inputs.clear();
+	outputs.clear();
 }
-*/
+
+void ATMDialog::computeThrowMeasurement()
+{
+	for (int i = 0; i < m_profiles.size(); i++)
+	{
+		std::vector<SegmentLinearRegression*> currentProfile;
+		currentProfile.reserve(m_segmentList[i].size());
+		currentProfile = m_segmentList[i];
+	}
+	//gets throw value
+
+	//compute cumulative throw along somewhat curvilinear abscissa
+}
+
+
+void ATMDialog::exportDataAsTxt()
+{
+	
+}
+
+void ATMDialog::importGeneratrixFromDB()
+{
+	QMainWindow* mainWindow = m_app->getMainWindow();
+	if (!mainWindow)
+		ccLog::Error("Main window not found!");
+
+	ccHObject* root = m_app->dbRootObject();
+	ccHObject::Container polylines;
+	if (root) root->filterChildren(polylines, true, CC_TYPES::POLY_LINE);
+
+	if (!polylines.empty())
+	{
+		int index = qATMSelectEntitiesDlg::SelectEntity(polylines);
+		m_generatrix = static_cast<ccPolyline*>(polylines[index]);
+		this->genName->setText(polylines[index]->getName());
+	}
+	else
+	{
+		ccLog::Error("No polyline in DB!");
+	}
+}
+
+void ATMDialog::displayProfilesDlg()
+{
+	ATMDisplayProfilesDlg* ATMDPDlg = new ATMDisplayProfilesDlg(m_segmentList);
+	ATMDPDlg->displayProfile();
+}
 
 /*
 void ATMDialog::exportDataAsImg()
