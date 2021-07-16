@@ -67,7 +67,7 @@ void ATMDisplayProfilesDlg::displayProfile(int selectedIndex/*=0*/,
 	for (size_t i = 0; i < m_entities.size(); ++i)
 	{
 		//add one line per entity
-		items << QString("Profile #%1 (ID=%2)").arg(i).arg(i/*entities[i]->getUniqueID() */ ); //to do
+		items << QString("Profile #%1 (ID=%2)").arg(i).arg(i/*entities[i]->getUniqueID() */); //to do
 	}
 	ATMDPDlg.setItems(items, selectedIndex);
 
@@ -143,7 +143,7 @@ void ATMDisplayProfilesDlg::exportDataAsTxt()
 		{
 			for (int j = 0; j < m_entities[i].size(); j++)
 			{
-				for (int k = 0; k < m_entities[i][j]->getSize(); k++) stream << m_entities[i][j]->getPoint(j)->x() 
+				for (int k = 0; k < m_entities[i][j]->getSize(); k++) stream << m_entities[i][j]->getPoint(j)->x()
 					<< "\t" << m_entities[i][j]->getPoint(j)->y() << "\n";
 			}
 
@@ -154,7 +154,7 @@ void ATMDisplayProfilesDlg::exportDataAsTxt()
 
 	//segmentation related data
 	QString path2 = QString("profile#%1_segmentationData").arg(idx);
-	QString outputFilename2 = QFileDialog::getSaveFileName(this, 
+	QString outputFilename2 = QFileDialog::getSaveFileName(this,
 		"Select destination", path2, tr("Text files(*.txt)"));
 
 	if (outputFilename2.isEmpty())
@@ -163,16 +163,16 @@ void ATMDisplayProfilesDlg::exportDataAsTxt()
 	QFile file2(outputFilename2);
 	if (file2.open(QIODevice::ReadWrite)) {
 		QTextStream stream(&file2);
-		stream << "start" << "\t" << "end" << "\t" << "intercept" 
+		stream << "start" << "\t" << "end" << "\t" << "intercept"
 			<< "\t" << "slope" << "\t" << "r2" << "\t" << "var" << "\n";
 
 		for (int i = 0; i < m_entities.size(); i++)
 		{
 			for (int j = 0; j < m_entities[i].size(); j++)
 			{
-				stream << m_entities[i][j]->getStartIndex() << "\t" 
+				stream << m_entities[i][j]->getStartIndex() << "\t"
 					<< m_entities[i][j]->getEndIndex() << "\t" << m_entities[i][j]->getIntercept()
-					<< "\t" << m_entities[i][j]->getSlope() << "\t" 
+					<< "\t" << m_entities[i][j]->getSlope() << "\t"
 					<< m_entities[i][j]->getRSquare() << "\t" << m_entities[i][j]->getVar() << "\n";
 			}
 		}
@@ -236,6 +236,6 @@ void ATMDisplayProfilesDlg::exportAllDataAsTxt()
 /*
 ATMDisplayProfilesDlg::~ATMDisplayProfilesDlg()
 {
-    delete ui;
+	delete ui;
 }
 */

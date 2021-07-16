@@ -20,6 +20,7 @@
 
 //system b 
 #include <assert.h>
+#include<math.h>
 
 using namespace QtCharts;
 
@@ -44,6 +45,7 @@ ATMDialog::ATMDialog(ccMainAppInterface* app, std::vector<ccPolyline*> profiles)
     //connect(genFromTxtBtn, &QPushButton::released, this, ATMDialog::importGeneratrixFromTxt);
     connect(saveAsTxtBtn, &QPushButton::released, this, &ATMDialog::exportDataAsTxt);
     //connect(saveAsImgBtn, &QPushButton::released, this, ATMDialog::exportDataAsImg);
+	
 
 	QChartView* chartView;
 
@@ -202,16 +204,47 @@ void ATMDialog::computeSegmentation()
 
 void ATMDialog::computeThrowMeasurement()
 {
+	float df, alpha, tExp, tThr, sd1, sd2;
 	for (int i = 0; i < m_profiles.size(); i++)
 	{
 		std::vector<SegmentLinearRegression*> currentProfile;
 		currentProfile.reserve(m_segmentList[i].size());
 		currentProfile = m_segmentList[i];
+
+		for (int j = 0; j < currentProfile.size()-1; j++)
+		{
+			df = currentProfile[j]->getSize() + currentProfile[static_cast<int>(j) + 1]->getSize() - 4;
+			alpha = 0.05; //default
+			sd1 = 1 / (currentProfile[j]->getSize() - 2) * (currentProfile[j]->getAltVar().y() / currentProfile[j]->getAltVar().x());
+			sd2 = 1 / (currentProfile[j+1]->getSize() - 2) * (currentProfile[j+1]->getAltVar().y() / currentProfile[j+1]->getAltVar().x());
+
+			tExp = (currentProfile[j]->getSlope() - currentProfile[j + 1]->getSlope()) / sqrt(sd1 + sd2);
+			
+			/*
+			tThr = getTTableValue(df, alpha);
+
+			if (tExp > tThr) // slopes are different
+			if (tExp < tThr) // slopes are similar
+			*/
+		}
 	}
 	//gets throw value
 
+
+
 	//compute cumulative throw along somewhat curvilinear abscissa
 }
+/*
+float ATMDialog::getTTableValue(int df, int alpha)
+{
+	float t;
+	//parse document, put value in table? might be ideal to create an attribute
+	//34 rows, begins at 1; 31 = 60, 32 = 120, 33 = inf
+	//8 columns, begins at 1; 1 = 0.1, 8 = 0.0005
+
+	return t;
+}
+*/
 
 
 void ATMDialog::exportDataAsTxt()
@@ -233,7 +266,7 @@ void ATMDialog::importGeneratrixFromDB()
 	{
 		int index = qATMSelectEntitiesDlg::SelectEntity(polylines);
 		m_generatrix = static_cast<ccPolyline*>(polylines[index]);
-		this->genName->setText(polylines[index]->getName());
+		//this->genName->setText(polylines[index]->getName());
 	}
 	else
 	{

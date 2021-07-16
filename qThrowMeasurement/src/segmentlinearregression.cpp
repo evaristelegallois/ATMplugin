@@ -20,6 +20,11 @@ float SegmentLinearRegression::getVar()
 	return m_var;
 }
 
+QVector2D SegmentLinearRegression::getAltVar()
+{
+	return m_altVar;
+}
+
 float SegmentLinearRegression::getRSquare()
 {
 	return m_rsquare;
@@ -78,6 +83,11 @@ QVector3D SegmentLinearRegression::getColor()
 void SegmentLinearRegression::setVar(float var)
 {
 	m_var = var;
+}
+
+void SegmentLinearRegression::setAltVar(QVector2D altVar)
+{
+	m_altVar = altVar;
 }
 
 void SegmentLinearRegression::setRSquare(float rsquare)

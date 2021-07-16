@@ -13,6 +13,7 @@ public:
     ~SegmentLinearRegression();
 
     float getVar();
+    QVector2D getAltVar();
     float getRSquare();
     float getSlope();
     float getIntercept();
@@ -27,6 +28,7 @@ public:
     QVector3D getColor();
 
     void setVar(float var);
+    void setAltVar(QVector2D altVar);
     void setRSquare(float rsquare);
     void setSlope(float slope);
     void setIntercept(float intercept);
@@ -40,7 +42,7 @@ public:
 
 private:
     float m_a, m_b, m_r, m_rsquare, m_var, m_p;
-    QVector2D m_start, m_end;
+    QVector2D m_start, m_end, m_altVar;
     int m_startInd, m_endInd, m_size;
     QVector3D m_color;
 

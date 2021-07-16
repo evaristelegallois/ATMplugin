@@ -263,6 +263,7 @@ std::vector<SegmentLinearRegression*> dPPiecewiseLinearRegression::computeSegmen
         segment->setIntercept(computeIntercept(maxI[k], maxI[k + 1]));
         segment->setRSquare(computeRSquare(maxI[k], maxI[k + 1]));
         segment->setVar(computeVar(maxI[k], maxI[k + 1]));
+        segment->setAltVar(computeAltVar(maxI[k], maxI[k + 1]));
         segment->setAssociatedP(m_p);
         segment->setColor(QVector3D(rand() % 359 + 0, 1, 1));
 
@@ -343,4 +344,19 @@ float dPPiecewiseLinearRegression::computeFirstIntercept(int i, int j)
 
     //compute b
     return static_cast<float>(sumY - computeFirstSlope(i, j) * sumX) / static_cast<float>(m_n);
+}
+
+QVector2D dPPiecewiseLinearRegression::computeAltVar(int i, int j)
+{
+    float sumX = 0., sumY = 0.;
+    float meanX = computeArithmeticMean(m_x, i, j);
+    float meanY = computeArithmeticMean(m_y, i, j);
+
+    for (int k = i; k < j + 1; k++)
+    {
+        sumX += (m_x[k] - meanX) * (m_x[k] - meanX);
+        sumY += (m_y[k] - meanY) * (m_y[k] - meanY);
+    }
+
+    return QVector2D (static_cast<float> (sumX), static_cast<float> (sumY));
 }

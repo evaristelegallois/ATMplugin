@@ -20,6 +20,7 @@ public:
     float computeRSquare(int i, int j);
     float computeVScore(int i, int j);
     float computeVar(int i, int j);
+    QVector2D computeAltVar(int i, int j);
 
     int* getMaximumIndexes();
     std::vector<SegmentLinearRegression*> computeSegmentation();
