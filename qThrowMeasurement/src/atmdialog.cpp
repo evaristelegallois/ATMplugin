@@ -239,7 +239,7 @@ void ATMDialog::computeThrowMeasurement()
 
 		//MAGNOLA
 
-		/*
+		
 		//profile 2 test 4
 		currentProfile.push_back(new SegmentLinearRegression(0, 451, xX, yY));
 		currentProfile[0]->setSlope(0.44);
@@ -247,7 +247,7 @@ void ATMDialog::computeThrowMeasurement()
 		currentProfile[1]->setSlope(1.12);
 		currentProfile.push_back(new SegmentLinearRegression(772, 1135, xX, yY));
 		currentProfile[2]->setSlope(0.75);
-		*/
+		
 
 		/*
 		//profile 6 test 2
@@ -291,6 +291,7 @@ void ATMDialog::computeThrowMeasurement()
 
 		//FUCINO 1
 		
+		/*
 		//profile 4
 		currentProfile.push_back(new SegmentLinearRegression(0, 31, xX, yY));
 		currentProfile[0]->setSlope(0.24);
@@ -304,6 +305,7 @@ void ATMDialog::computeThrowMeasurement()
 		currentProfile[4]->setSlope(0.52);
 		currentProfile.push_back(new SegmentLinearRegression(230, 298, xX, yY));
 		currentProfile[5]->setSlope(0.56);
+		*/
 		
 		//FUCINO 2
 
@@ -359,9 +361,18 @@ void ATMDialog::computeThrowMeasurement()
 		TreeNode* leftNode = HAC_av->getNodeLeft();
 		TreeNode* rightNode = HAC_av->getNodeRight();
 
-		double max = std::max(leftNode->getGap(), rightNode->getGap());
-		//double threshold = static_cast<double> (rand() % (int) ((HAC_av->getGap() - max) + 1) + max); //returns 3 clusters instead of 2 bc of the int cast
-		double threshold = (HAC_av->getGap() + max) / 2.;
+		//IF TWO CLUSTERS ARE NEEDED
+		//double max = std::max(leftNode->getGap(), rightNode->getGap());
+		//double threshold = (HAC_av->getGap() + max) / 2.;
+
+		//IF THREE CLUSTERS ARE NEEDED
+		TreeNode* currentNode;
+		if (leftNode->getGap() < rightNode->getGap()) currentNode = rightNode;
+		else currentNode = leftNode;
+		TreeNode* nextRNode = currentNode->getNodeRight();
+		TreeNode* nextLNode = currentNode->getNodeLeft();
+		double max = std::max(nextRNode->getGap(), nextLNode->getGap());
+		double threshold = max + static_cast <float> (rand()) / (static_cast <float> (RAND_MAX / (currentNode->getGap() - max)));
 
 		//if (leftNode == nullptr && rightNode == nullptr) //it's a leaf
 		Clusters* cluster = new Clusters(HAC_av, threshold);
@@ -408,12 +419,10 @@ void ATMDialog::computeThrowMeasurement()
 			sgClusters.push_back(sgList);
 		}
 
-		//cumulSlope += maxSlope;
 		y[i] = static_cast<float> (maxSlope);
 		qDebug() << "y" << y[i];
 		qDebug() << "maxSlope" << maxSlope;
 
-		//int startIndex = sgClusters[maxL][0]->getStartIndex();
 		std::vector<int> listStart, listEnd;
 		listStart.reserve(sgClusters[maxL].size());
 		listEnd.reserve(sgClusters[maxL].size());
