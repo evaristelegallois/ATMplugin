@@ -9,6 +9,14 @@ target_sources( ${PROJECT_NAME}
 		${CMAKE_CURRENT_LIST_DIR}/dppiecewiselinearregression.h
 		${CMAKE_CURRENT_LIST_DIR}/qatmselectentitiesdlg.h
 		${CMAKE_CURRENT_LIST_DIR}/atmdisplayprofilesdlg.h
+
+		${CMAKE_CURRENT_LIST_DIR}/HAC_Average.h
+		${CMAKE_CURRENT_LIST_DIR}/LinearRegression.h
+		${CMAKE_CURRENT_LIST_DIR}/MatrixDistance.h
+		${CMAKE_CURRENT_LIST_DIR}/StatisticalTools.h
+		${CMAKE_CURRENT_LIST_DIR}/TreeNode.h
+		${CMAKE_CURRENT_LIST_DIR}/HierarchicalAgglomerativeClustering.h
+		${CMAKE_CURRENT_LIST_DIR}/Clusters.h
 		
 )
 

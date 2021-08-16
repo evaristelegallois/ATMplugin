@@ -33,15 +33,14 @@ QVector<QVector2D*> profileProcessor::profileToXY()
 	{
 		for (int i = 0; i < m_inputProfile->size() - 1; i++)
 		{
-
-			//find a way toa void computing every segment entire length
 			QVector2D genStart = QVector2D(m_inputGeneratrix->getPoint(j)->x, m_inputGeneratrix->getPoint(j)->y);
 			QVector2D genEnd = QVector2D(m_inputGeneratrix->getPoint(j + 1)->x, m_inputGeneratrix->getPoint(j + 1)->y);
 			QVector2D profStart = QVector2D(m_inputProfile->getPoint(i)->x, m_inputProfile->getPoint(i)->y);
 			QVector2D profEnd = QVector2D(m_inputProfile->getPoint(i+1)->x, m_inputProfile->getPoint(i + 1)->y);
 			intercept = getIntersection(genStart, genEnd, profStart, profEnd);
 
-			//qDebug() << "intercept" << intercept.x() << intercept.y();
+			qDebug() << "intercept" << (double) intercept.x() << (double) intercept.y();
+			//if (intercept.x() != 0) qDebug() << "true";
 
 			if (intercept.x() + 0.01 * intercept.x() < m_inputProfile->getPoint(i)->x
 				|| intercept.x() - 0.01 * intercept.x() < m_inputProfile->getPoint(i)->x)
@@ -52,7 +51,6 @@ QVector<QVector2D*> profileProcessor::profileToXY()
 		}
 		qDebug() << "print gen idx" << m_genPtIdx;
 		if (m_genPtIdx != 0) break;
-
 	}
 	
 	for (int i = 0; i < m_inputProfile->size()-1; i++) 
@@ -111,6 +109,7 @@ ccPolyline* profileProcessor::segmentToProfile(std::vector<SegmentLinearRegressi
 	for (int i = 0; i < segments.size(); i++)
 	{
 		m_inputSegment = segments[i];
+		m_inputSegment->setUniqueSharedID(m_profileID);
 		int start = m_inputSegment->getStartIndex();
 		int end = m_inputSegment->getEndIndex();
 
@@ -128,8 +127,6 @@ ccPolyline* profileProcessor::segmentToProfile(std::vector<SegmentLinearRegressi
 			}
 			else m_outputCloud->getScalarField(sfIdx)->addElement(color);
 		}
-
-
 	}
 
 	//manually adding last point
@@ -168,6 +165,7 @@ QVector2D profileProcessor::getIntersection(QVector2D p1, QVector2D p2, QVector2
 	float s, t;
 	s1 = p2 - p1;
 	s2 = q2 - q1;
+	//if (s2.x() < 0) s2 = q1 - q2;
 
 	if ((-s2.x() * s1.y() + s1.x() * s2.y()) == 0) i = QVector2D(0, 0); // No collision
 	bool isDenomPositive = (-s2.x() * s1.y() + s1.x() * s2.y()) > 0;
@@ -182,8 +180,9 @@ QVector2D profileProcessor::getIntersection(QVector2D p1, QVector2D p2, QVector2
 
 	s = (-s1.y() * (p1.x() - q1.x()) + s1.x() * (p1.y() - q1.y())) / (-s2.x() * s1.y() + s1.x() * s2.y());
 	t = (s2.x() * (p1.y() - q1.y()) - s2.y() * (p1.x() - q1.x())) / (-s2.x() * s1.y() + s1.x() * s2.y());
+	//if (t < 0) t = -t;
 
-	//qDebug() << "s" << s << "t" << t;
+	qDebug() << "s" << s << "t" << t;
 	//qDebug() << "s1" << s1.x() << "s2" << s2.x();
 
 	if (t >= 0 && t <= 1) i = QVector2D(p1.x() + (t * s1.x()), p1.y() + (t * s1.y()));
@@ -241,9 +240,14 @@ QVector2D profileProcessor::getIntersection(QVector2D p1, QVector2D p2, QVector2
 
 }
 
-
 char profileProcessor::getProfileID()
 {
 	return m_profileID;
+}
+
+int profileProcessor::getTransectPos()
+{
+	if (m_genPtIdx < 0) m_genPtIdx = 0;
+	return m_genPtIdx;
 }
 

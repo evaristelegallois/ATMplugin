@@ -23,6 +23,7 @@ public:
     ccPolyline* segmentToProfile(std::vector<SegmentLinearRegression*> segments);
     QVector2D getIntersection(QVector2D p1, QVector2D p2, QVector2D q1, QVector2D q2);
     char getProfileID();
+    int getTransectPos();
 
     void displayProfile(ccMainAppInterface* app);
 

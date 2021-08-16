@@ -42,9 +42,13 @@ protected:
     std::vector<SegmentLinearRegression*> m_segments;
     std::vector <std::vector<SegmentLinearRegression*>> m_segmentList;
 
-    ccPolyline* m_generatrix = nullptr;
+    std::vector<std::vector<int>> m_startIdx, m_endIdx;
+    std::vector<int> m_transectPos;
 
-    ATMDialog* m_atmDlg;
+    QChart* m_chart;
+    QChartView* m_chartView;
+
+    ccPolyline* m_generatrix = nullptr;
 
 /*
 private:

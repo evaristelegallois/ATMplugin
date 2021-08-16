@@ -75,10 +75,16 @@ float SegmentLinearRegression::getAssociatedP()
 	return m_p;
 }
 
+int SegmentLinearRegression::getUniqueSharedID()
+{
+	return m_id;
+}
+
 QVector3D SegmentLinearRegression::getColor()
 {
 	return m_color;
 }
+
 
 void SegmentLinearRegression::setVar(float var)
 {
@@ -126,12 +132,18 @@ void SegmentLinearRegression::setEndIndex(int endInd)
 	m_endInd = endInd;
 }
 
+void SegmentLinearRegression::setAssociatedP(float p)
+{
+	m_p = p;
+}
+
+void SegmentLinearRegression::setUniqueSharedID(int id)
+{
+	m_id = id;
+}
+
 void SegmentLinearRegression::setColor(QVector3D color)
 {
 	m_color = color;
 }
 
-void SegmentLinearRegression::setAssociatedP(float p)
-{
-	m_p = p;
-}

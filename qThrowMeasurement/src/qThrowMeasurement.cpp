@@ -67,6 +67,8 @@
 
 using namespace CCCoreLib;
 
+static double m_radius = 5.0;
+
 
 // Default constructor:
 //	- pass the Qt resource path to the info.json file (from <yourPluginName>.qrc file) 
@@ -92,7 +94,7 @@ void qThrowMeasurement::onNewSelection( const ccHObject::Container &selectedEnti
 	
 	if (m_computeAngularDifference)
 		m_computeAngularDifference->setEnabled(selectedEntities.size() == 1 && 
-			selectedEntities.back()->isA(CC_TYPES::POINT_CLOUD));
+			selectedEntities.back()->isA(CC_TYPES::HIERARCHY_OBJECT));
 
 }
 
@@ -119,7 +121,7 @@ QList<QAction *> qThrowMeasurement::getActions()
 		m_computeAngularDifference->setToolTip("");
 		m_computeAngularDifference->setIcon(QIcon(QString::fromUtf8(":/CC/plugin/qThrowMeasurement/img/angularDiff.png")));
 		//connect signal
-		//connect(m_computeAngularDifference, &QAction::triggered, this, [this]);
+		connect(m_computeAngularDifference, &QAction::triggered, this, &qThrowMeasurement::compute);
 	}
 
 	return QList<QAction*>{
@@ -177,52 +179,120 @@ ScalarType qThrowMeasurement::computeAngularDifference(double theta1, double the
 
 ScalarType qThrowMeasurement::getAngleFromVerticality(ccPointCloud* cloud)
 {
-	ScalarType theta;
+	ScalarType theta, sum = 0;
 
 	if (!cloud)
 	{
 		//return nullptr;
+		qDebug() << "No cloud selected!";
 	}
 
 	//ccFacet* facet = ccFacet::Create(cloud, static_cast<PointCoordinateType>(10), true);
 
+	//qDebug() << "nb sf" << cloud->getNumberOfScalarFields();
+
 	//computes verticality specifically, with a neighbouring sphere radius of 20
 	GeometricalAnalysisTools::ComputeCharactersitic(
-		static_cast<GeometricalAnalysisTools::GeomCharacteristic>(0), 10, cloud, 20.0);
+		static_cast<GeometricalAnalysisTools::GeomCharacteristic>(0), 10, cloud, m_radius);
+	//qDebug() << "cloud in getAngle" << cloud;
 
-	int index = cloud->getScalarFieldIndexByName("Verticality (20.0)");
-	int index2 = cloud->addScalarField("Angle");
-	cloud->setCurrentOutScalarField(index);
-	cloud->setCurrentInScalarField(index2);
+	//qDebug() << "nb sf" << cloud->getNumberOfScalarFields();
 
 	for (int i = 0; i < cloud->size(); i++) {
-		theta = acos(1 - (cloud->getPointScalarValue(i))); //computes theta from verticality
-		cloud->setPointScalarValue(i, theta); //assigns value to each point
+		double value = (cloud->getPointScalarValue(i));
+		if (!isnormal(value)) value = 0;
+		sum += acos(1 - value); //computes theta from verticality
+		//qDebug() << "point value" << cloud->getPointScalarValue(i);
 	}
 
-	//scalarField->computeMinAndMax();
+	theta = sum / cloud->size();
+	//qDebug() << "sum" << sum << "size" << cloud->size(); //sum pas okay
 
-	return 1.00;
+	return theta; //return scalar field instead
 }
 
-//void qThrowMeasurement::compute(ccMainAppInterface* m_app)
-//{
+void qThrowMeasurement::compute()
+{
 	// TO PUT A THE BEGINING OF PLUGIN
 	/*assert(m_app);
 	if (!m_app)
 	return;*/
 
-/*
+
 	//we expect a facet group
 	const ccHObject::Container& selectedEntities = m_app->getSelectedEntities();
 	if (!m_app->haveOneSelection() || !selectedEntities.back()->isA(CC_TYPES::HIERARCHY_OBJECT))
 	{
 		m_app->dispToConsole("Select a group of facets!");
 	}
+
+	//lets the user choose the initial cloud
+	QMainWindow* mainWindow = m_app->getMainWindow();
+	if (!mainWindow)
+		ccLog::Error("Main window not found!");
+
+	ccHObject* root = m_app->dbRootObject();
+	ccHObject::Container clouds;
+	if (root) root->filterChildren(clouds, true, CC_TYPES::POINT_CLOUD);
+
+	ccPointCloud* cloud;
+	if (!clouds.empty())
+	{
+		int index = qATMSelectEntitiesDlg::SelectEntity(clouds);
+		m_cloud = static_cast<ccPointCloud*>(clouds[index]);
+	}
+	else
+	{
+		ccLog::Error("No point cloud in DB!");
+	}
+
+	
+	std::vector<ccFacet*> FacetSet;
+	int size = 0;
+
+	/*
+	for (int i = 0; i < selectedEntities.size(); i++)
+	{
+		size += selectedEntities[i]->getChildrenNumber();
+		for (int j = 0; j < selectedEntities[i]->getChildrenNumber(); j++)
+		{
+			size += selectedEntities[i]->getChild(j)->getChildrenNumber();
+			for (int k = 0; k < selectedEntities[i]->getChild(j)->getChildrenNumber(); k++) 
+				size += selectedEntities[i]->getChild(j)->getChild(k)->getChildrenNumber();
+		}
+	}
+
+	FacetSet.reserve(size);
+
+	for (int i = 0; i < selectedEntities.size(); i++)
+	{
+		for (int j = 0; j < selectedEntities[i]->getChildrenNumber(); j++)
+		{
+			for (int k = 0; k < selectedEntities[i]->getChild(j)->getChildrenNumber(); k++) 
+				FacetSet.push_back(static_cast<ccFacet*> (selectedEntities[i]->getChild(j)->getChild(k)));
+		}
+	}
+	*/
+
+	for (int i = 0; i < selectedEntities.size(); i++)
+	{
+		size += selectedEntities[i]->getChildrenNumber();
+		qDebug() << "nb of facets" << size;
+		FacetSet.reserve(size);
+		for (int j = 0; j < selectedEntities[i]->getChildrenNumber(); j++)
+		{
+			FacetSet.push_back(static_cast<ccFacet*> (selectedEntities[i]->getChild(j)));
+		}
+	}
+
+	qDebug() << "facetset size" << FacetSet.size();
+	//for (int i = 0; i < FacetSet.size(); i++) FacetSet.push_back(static_cast<ccFacet*> (FacetSet[i]));
+	compareFacetsGroup(FacetSet);
+	
 }
 
 
-static PointCoordinateType qThrowMeasurement::ComputeHDistBetweenFacets(const ccFacet* f1, const ccFacet* f2)
+PointCoordinateType qThrowMeasurement::ComputeHDistBetweenFacets(const ccFacet* f1, const ccFacet* f2)
 {
 	CCVector3 AB = f1->getCenter() - f2->getCenter();
 	return std::min(std::abs(AB.dot(f1->getNormal())), std::abs(AB.dot(f2->getNormal())));
@@ -231,32 +301,68 @@ static PointCoordinateType qThrowMeasurement::ComputeHDistBetweenFacets(const cc
 
 void qThrowMeasurement::compareFacetsGroup(std::vector<ccFacet*> FacetSet)
 {
-	ScalarType theta1, theta2, deltaTheta;
+	ScalarType *theta, theta1, theta2, deltaTheta;
+	theta = new ScalarType[m_cloud->size()];
+	int cloudSize = 0;
 	double minDist = 0;
 	double maxDist = 200;
 	double curDist = 0;
 
-	int index = cloud->getScalarFieldIndexByName("Verticality (20.0)");
-	int index2 = cloud->addScalarField("Angle");
-	cloud->setCurrentOutScalarField(index);
-	cloud->setCurrentInScalarField(index2);
+	ccPointCloud* cloud = new ccPointCloud("Vertices");
+	cloud->reserve(m_cloud->size());
+	qDebug() << "cloud size" << m_cloud->size();
+	//qDebug() << "facet size" << FacetSet[0]->getOriginPoints();
 
-	for (int i = 0; i < cloud->size(); i++) {
-		theta = acos(1 - (cloud->getPointScalarValue(i))); //computes theta from verticality
-		cloud->setPointScalarValue(i, theta); //assigns value to each point
+
+	//int index = cloud->getScalarFieldIndexByName("Verticality (" + QString::number(m_angle) + ")");
+	int sfIdx = cloud->getScalarFieldIndexByName("Angle");
+	if (sfIdx < 0)
+		sfIdx = cloud->addScalarField("Angle");
+	cloud->getScalarField(sfIdx)->reserve(m_cloud->size());
+	cloud->setCurrentScalarField(sfIdx);
+	//cloud->setCurrentOutScalarField(index);
+	//cloud->setCurrentInScalarField(index);
+	qDebug() << "sf ok";
+
+	for (int i = 0; i < FacetSet.size(); i++) {
+		//qDebug() << "facet size" << FacetSet[i]->getOriginPoints()->size();
+		cloud->append(FacetSet[i]->getOriginPoints(), cloudSize);
+		theta[i] = static_cast<double> (getAngleFromVerticality(FacetSet[i]->getOriginPoints())); //computes theta from verticality
+		cloudSize += FacetSet[i]->getOriginPoints()->size(); //not equal to cloud size??
+		qDebug() << "theta" << theta[i];
 	}
 
-	//scalarField->computeMinAndMax();
+	qDebug() << "cloudSize" << cloudSize;
+	qDebug() << "theta ok";
+
 	for (int i = 0; i < FacetSet.size() - 1; i++)
 	{
-		curDist = abs(ComputeHDistBetweenFacets(FacetSet[i], FacetSet[i + 1]));
-		if (curDist < maxDist)
+		for (int j = 0; j < FacetSet.size() - 1; j++)
 		{
-			theta1 = getAngleFromVerticality(FacetSet[i]->getOriginPoints());
-			theta2 = getAngleFromverticality(FacetSet[i + 1]->getOriginPoints());
-			deltaTheta = computeAngularDifference(theta1, theta2);
+			curDist = abs(ComputeHDistBetweenFacets(FacetSet[i], FacetSet[j]));
+			if (curDist < maxDist)
+			{
+				//theta1 = getAngleFromVerticality(FacetSet[i]->getOriginPoints());
+				//theta2 = getAngleFromverticality(FacetSet[i + 1]->getOriginPoints());
+				deltaTheta = static_cast<double> (computeAngularDifference(theta[i], theta[j]));
+				cloud->setPointScalarValue(i, deltaTheta); //assigns value to each point
+				cloud->getScalarField(sfIdx)->addElement(deltaTheta);
+				//qDebug() << "delta theta" << deltaTheta;
+			}
 		}
 	}
+
+	qDebug() << "cloud ok";
+	//cloud->getScalarField(sfIdx)->computeMinAndMax();
+
+	cloud->setCurrentScalarField(sfIdx);
+	cloud->getScalarField(sfIdx)->computeMinAndMax();
+	cloud->setCurrentDisplayedScalarField(sfIdx);
+	cloud->showSF(true);
+
+	m_app->addToDB(cloud);
+	m_app->redrawAll();
+
+	qDebug() << "compute ok";
 }
-*/
 

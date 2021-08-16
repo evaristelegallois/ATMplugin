@@ -63,6 +63,9 @@ public:
 	//// 3D FUNCTIONNALITY
 	ScalarType computeAngularDifference(double theta1, double theta2);
 	ScalarType getAngleFromVerticality(ccPointCloud* cloud);
+	void compareFacetsGroup(std::vector<ccFacet*> FacetSet);
+	static PointCoordinateType ComputeHDistBetweenFacets(const ccFacet* f1, const ccFacet* f2);
+	void compute();
 
 	void exportData(std::vector<SegmentLinearRegression*> segments, int index);
 	ccPolyline* importGeneratrixFromDB();
@@ -146,7 +149,8 @@ private:
 	**/
 	QAction* m_computeThrowMeasurement;
 	QAction* m_computeAngularDifference;
-
+	double m_radius;
+	ccPointCloud* m_cloud;
 
 
 };

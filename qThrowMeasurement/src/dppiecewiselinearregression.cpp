@@ -256,6 +256,7 @@ std::vector<SegmentLinearRegression*> dPPiecewiseLinearRegression::computeSegmen
     qDebug() << "maxI size" << maxI.size();
 
     //for (int k =0; k < maxI.size(); k++) qDebug() << "maxI" << maxI[k];
+    int nbVert = 0;
     for (int k = 0; k < maxI.size()-1; k++)
     {
         SegmentLinearRegression* segment = new SegmentLinearRegression(maxI[k], maxI[k+1], m_x, m_y);
@@ -266,9 +267,12 @@ std::vector<SegmentLinearRegression*> dPPiecewiseLinearRegression::computeSegmen
         segment->setAltVar(computeAltVar(maxI[k], maxI[k + 1]));
         segment->setAssociatedP(m_p);
         segment->setColor(QVector3D(rand() % 359 + 0, 1, 1));
+        //nbVert += segment->getSize();
 
         m_segments.push_back(segment);
     }
+
+    //qDebug() << "nb vertices" << nbVert;
 
     return m_segments;
 }
