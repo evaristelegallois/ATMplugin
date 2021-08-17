@@ -239,7 +239,7 @@ void ATMDialog::computeThrowMeasurement()
 
 		//MAGNOLA
 
-		
+		/*
 		//profile 2 test 4
 		currentProfile.push_back(new SegmentLinearRegression(0, 451, xX, yY));
 		currentProfile[0]->setSlope(0.44);
@@ -247,6 +247,7 @@ void ATMDialog::computeThrowMeasurement()
 		currentProfile[1]->setSlope(1.12);
 		currentProfile.push_back(new SegmentLinearRegression(772, 1135, xX, yY));
 		currentProfile[2]->setSlope(0.75);
+		*/
 		
 
 		/*
@@ -259,7 +260,7 @@ void ATMDialog::computeThrowMeasurement()
 		currentProfile[2]->setSlope(0.41);
 		*/
 		
-		/*
+		
 		//profile 3 test 2
 		currentProfile.push_back(new SegmentLinearRegression(0, 159, xX, yY));
 		currentProfile[0]->setSlope(0.47);
@@ -267,7 +268,7 @@ void ATMDialog::computeThrowMeasurement()
 		currentProfile[1]->setSlope(1.69);
 		currentProfile.push_back(new SegmentLinearRegression(189, 298, xX, yY));
 		currentProfile[2]->setSlope(0.86);
-		*/
+		
 
 		/*
 		//profile 3 test 3
