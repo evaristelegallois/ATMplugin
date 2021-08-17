@@ -32,8 +32,6 @@ public:
 
 protected:
 
-	//! Path length
-	double m_pathLength;
 	ccMainAppInterface* m_app;
     QList<QChartView*> m_charts;
 
@@ -49,12 +47,6 @@ protected:
     QChartView* m_chartView;
 
     ccPolyline* m_generatrix = nullptr;
-
-/*
-private:
-    Ui::ATMDialog *ui;
-*/
-
 };
 
 #endif // ATMDIALOG_H

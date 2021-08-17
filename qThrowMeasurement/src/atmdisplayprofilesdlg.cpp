@@ -107,7 +107,8 @@ void ATMDisplayProfilesDlg::displayChart()
 	displayProfile(getSelectedIndex());
 }
 
-//LIST ISNT CLEARED SO NEED TO ADD UNIQUE ID AND P IN CASE PEOPLE WANT TO COMPARE BETWEEN SEGMENTATION RESULTS
+//LIST ISNT CLEARED SO NEED TO ADD UNIQUE ID AND P IN CASE PEOPLE WANT TO COMPARE 
+//BETWEEN SEGMENTATION RESULTS
 void ATMDisplayProfilesDlg::displayProfile(int selectedIndex/*=0*/,
 	QWidget* parent/*=0*/)
 {

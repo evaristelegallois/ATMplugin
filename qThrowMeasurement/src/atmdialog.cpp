@@ -26,7 +26,7 @@
 #include <QtCharts>
 
 //system b 
-#include <assert.h>
+#include<assert.h>
 #include<math.h>
 
 using namespace QtCharts;
@@ -44,7 +44,8 @@ ATMDialog::ATMDialog(ccMainAppInterface* app, std::vector<ccPolyline*> profiles)
 {
     setupUi(this);
 
-	//connect(step, static_cast<void (QDoubleSpinBox::*)(double)> (&QDoubleSpinBox::valueChanged), this, &ATMDialog::onStepChanged);
+	//connect(step, static_cast<void (QDoubleSpinBox::*)(double)> (&QDoubleSpinBox::valueChanged), 
+	//this, &ATMDialog::onStepChanged);
     
     connect(computeMain, &QPushButton::released, this, &ATMDialog::computeSegmentation);
     connect(displayProfilesBtn, &QPushButton::released, this, &ATMDialog::displayProfilesDlg);
@@ -55,11 +56,6 @@ ATMDialog::ATMDialog(ccMainAppInterface* app, std::vector<ccPolyline*> profiles)
 
 	m_chartView = new QChartView();
 	baseLayout->addWidget(m_chartView, 1, 2);
-
-	/*if (!this->exec())
-	{
-		//cancelled by the user
-	}*/
 }
 
 //LINE CHART FOR CUMULATIVE DISPLACEMENT
@@ -140,14 +136,17 @@ void ATMDialog::computeSegmentation()
 		}
 
 		//get linear regression parameters here
-		dPPiecewiseLinearRegression* model = new dPPiecewiseLinearRegression(x, y, n, s_p, s_jumps, s_type);
+		dPPiecewiseLinearRegression* model = new dPPiecewiseLinearRegression(x, y, n, 
+			s_p, s_jumps, s_type);
 		m_segments = model->computeSegmentation();
 		m_segmentList.push_back(m_segments);
 
 		qDebug() << "list segments size" << m_segmentList.size();
 		qDebug() << "segmentation model OK";
 
-		outputs.push_back(m_processors[i]->segmentToProfile(m_segments)); // ISSUE HERE invalid vector subscript
+		outputs.push_back(m_processors[i]->segmentToProfile(m_segments)); 
+		// ISSUE HERE invalid vector subscript
+
 		m_transectPos.push_back(m_processors[i]->getTransectPos());
 		qDebug() << "outputs OK";
 		m_app->addToDB(outputs[i]);
@@ -190,6 +189,7 @@ void ATMDialog::computeSegmentation()
 		ccLog::Print(QString("[qThrowMeasurement] %1 segmentation(s) computed").arg(exportCount));
 		*/
 	}
+
 	//compute displacement
 	computeThrowMeasurement();
 	//compute cumulative displacement
@@ -248,7 +248,6 @@ void ATMDialog::computeThrowMeasurement()
 		currentProfile.push_back(new SegmentLinearRegression(772, 1135, xX, yY));
 		currentProfile[2]->setSlope(0.75);
 		*/
-		
 
 		/*
 		//profile 6 test 2
@@ -260,7 +259,7 @@ void ATMDialog::computeThrowMeasurement()
 		currentProfile[2]->setSlope(0.41);
 		*/
 		
-		
+		/*
 		//profile 3 test 2
 		currentProfile.push_back(new SegmentLinearRegression(0, 159, xX, yY));
 		currentProfile[0]->setSlope(0.47);
@@ -268,6 +267,7 @@ void ATMDialog::computeThrowMeasurement()
 		currentProfile[1]->setSlope(1.69);
 		currentProfile.push_back(new SegmentLinearRegression(189, 298, xX, yY));
 		currentProfile[2]->setSlope(0.86);
+		*/
 		
 
 		/*
@@ -289,6 +289,7 @@ void ATMDialog::computeThrowMeasurement()
 		currentProfile.push_back(new SegmentLinearRegression(1052, 1319, xX, yY));
 		currentProfile[7]->setSlope(0.32);
 		*/
+		
 
 		//FUCINO 1
 		
@@ -308,9 +309,10 @@ void ATMDialog::computeThrowMeasurement()
 		currentProfile[5]->setSlope(0.56);
 		*/
 		
+		
 		//FUCINO 2
 
-		/*
+		
 		//profile 2
 		currentProfile.push_back(new SegmentLinearRegression(0, 58, xX, yY));
 		currentProfile[0]->setSlope(0.39);
@@ -318,7 +320,8 @@ void ATMDialog::computeThrowMeasurement()
 		currentProfile[1]->setSlope(0.54);
 		currentProfile.push_back(new SegmentLinearRegression(134, 517, xX, yY));
 		currentProfile[2]->setSlope(0.5);
-		*/
+		
+		
 
 		std::vector<LinearRegression*> listLR;
 
@@ -326,9 +329,11 @@ void ATMDialog::computeThrowMeasurement()
 		for (int j = 0; j < currentProfile.size(); j++)
 		{
 			std::vector<double> xVal, yVal;
+
 			qDebug() << "current segment size" << currentProfile[j]->getSize();
-			qDebug() << "start, end" << currentProfile[j]->getStartIndex() << currentProfile[j]->getEndIndex();
-			//for (int k = currentProfile[j]->getStartIndex(); k < currentProfile[j]->getEndIndex(); k++)
+			qDebug() << "start, end" << currentProfile[j]->getStartIndex() << 
+				currentProfile[j]->getEndIndex();
+
 			for (int k = 0; k < currentProfile[j]->getSize()-1 + s_jumps; k++) //-1 if start = end
 			{
 				xVal.push_back(static_cast<double> (currentProfile[j]->getPoint(k)->x()));
@@ -366,6 +371,7 @@ void ATMDialog::computeThrowMeasurement()
 		//double max = std::max(leftNode->getGap(), rightNode->getGap());
 		//double threshold = (HAC_av->getGap() + max) / 2.;
 
+		
 		//IF THREE CLUSTERS ARE NEEDED
 		TreeNode* currentNode;
 		if (leftNode->getGap() < rightNode->getGap()) currentNode = rightNode;
@@ -373,7 +379,8 @@ void ATMDialog::computeThrowMeasurement()
 		TreeNode* nextRNode = currentNode->getNodeRight();
 		TreeNode* nextLNode = currentNode->getNodeLeft();
 		double max = std::max(nextRNode->getGap(), nextLNode->getGap());
-		double threshold = max + static_cast <float> (rand()) / (static_cast <float> (RAND_MAX / (currentNode->getGap() - max)));
+		double threshold = max + static_cast <float> (rand()) / 
+			(static_cast <float> (RAND_MAX / (currentNode->getGap() - max)));
 
 		//if (leftNode == nullptr && rightNode == nullptr) //it's a leaf
 		Clusters* cluster = new Clusters(HAC_av, threshold);
@@ -386,7 +393,9 @@ void ATMDialog::computeThrowMeasurement()
 		std::vector<std::vector<SegmentLinearRegression*>> sgClusters;
 		sgClusters.reserve(clusterNb);
 
-		float* slopes = new float[clusterNb];
+		float* averageSlopes = new float[clusterNb];
+		std::vector<float> segmentSlopes;
+		segmentSlopes.reserve(m_segmentList[i].size());
 
 		qDebug() << "cluster size alloc ok";
 
@@ -404,35 +413,32 @@ void ATMDialog::computeThrowMeasurement()
 				int index = tnClusters[l][m]->getValue();
 				sgList.push_back(currentProfile[index]);
 				slope += currentProfile[index]->getSlope();
+				//segmentSlopes.push_back(currentProfile[index]->getSlope());
 			}
 
-			slopes[l] = slope / sgList.size(); //average slope for each cluster
-			if (slopes[l] > maxSlope)
+			averageSlopes[l] = slope / sgList.size(); //average slope for each cluster
+			if (averageSlopes[l] > maxSlope)
 			{
-				maxSlope = slopes[l];
+				maxSlope = averageSlopes[l];
 				maxL = l;
 				qDebug() << "maxL" << maxL;
 			}
 
-			qDebug() << "cluster nb " << l << "average slope" << slopes[l];
+			qDebug() << "cluster nb " << l << "average slope" << averageSlopes[l];
 
 			qDebug() << "sgList size" << sgList.size();
 			sgClusters.push_back(sgList);
 		}
 
-		y[i] = static_cast<float> (maxSlope);
-		qDebug() << "y" << y[i];
-		qDebug() << "maxSlope" << maxSlope;
-
 		std::vector<int> listStart, listEnd;
 		listStart.reserve(sgClusters[maxL].size());
 		listEnd.reserve(sgClusters[maxL].size());
 
-		for (int i = 0; i < sgClusters[maxL].size(); i++)
+		for (int j = 0; j < sgClusters[maxL].size(); j++)
 		{
 			//qDebug() << "sgList maxL size" << sgClusters[maxL].size();
-			int startIndex = sgClusters[maxL][i]->getStartIndex();
-			int endIndex = sgClusters[maxL][i]->getEndIndex();
+			int startIndex = sgClusters[maxL][j]->getStartIndex();
+			int endIndex = sgClusters[maxL][j]->getEndIndex();
 			listStart.push_back(startIndex);
 			listEnd.push_back(endIndex);
 			qDebug() << "start Idx" << startIndex;
@@ -441,7 +447,82 @@ void ATMDialog::computeThrowMeasurement()
 		m_startIdx.push_back(listStart);
 		m_endIdx.push_back(listEnd);
 		qDebug() << "point list size" << m_startIdx[i].size();
+		qDebug() << "start idx list size" << listStart.size();
 		//full profile is covered in green
+
+		float z1 = 0., z2 = 0.;
+		std::vector<std::vector<SegmentLinearRegression*>> tempSgCluster;
+		//NEED TO MAKE THE FOLLOWING WORK FOR SEVERAL PROFILES AT ONCE
+		if (listStart.size() != 1)
+		{
+			for (int k = 0; k < listStart.size() - 1; k++)
+			{
+				if (listEnd[k] != listStart[k + 1])
+				{
+					float tempSlope = 0.;
+					std::vector<SegmentLinearRegression*> tempSgList;
+					tempSgList.reserve(listStart.size() - 1);
+
+					for (int l = 0; l < sgClusters[maxL].size() - 1; l++)
+					{
+						tempSgList.push_back(sgClusters[maxL][l]);
+						tempSlope += sgClusters[maxL][l]->getSlope();
+						if (sgClusters[maxL][l]->getEndIndex() != sgClusters[maxL][l + 1]->getStartIndex())
+						{
+							tempSgCluster.push_back(tempSgList);
+							segmentSlopes.push_back(tempSlope / tempSgList.size());
+						}
+					}
+					qDebug() << "temp list size" << tempSgList.size();
+
+				}
+			}
+		}
+
+		qDebug() << "segment slopes list size" << segmentSlopes.size();
+		if (segmentSlopes.size() != 0)
+		{
+			float maxSl = 0.;
+			for (int j = 0; j < segmentSlopes.size(); j++)
+			{
+				if (segmentSlopes[j] > maxSl)
+				{
+					maxSl = segmentSlopes[j];
+					z1 = tempSgCluster[j][0]->getStart().y();
+					z2 = tempSgCluster[j][tempSgCluster.size()-1]->getEnd().y();
+				}
+			}
+			y[i] = static_cast<float> (maxSl);//nope => throwMeasurement
+		}
+
+		else
+		{
+			y[i] = static_cast<float> (maxSlope);//nope => throwMeasurement
+			z1 = sgClusters[maxL][0]->getStart().y();
+			z2 = sgClusters[maxL][0]->getEnd().y();
+		}
+
+		qDebug() << "z1, z2" << z1 << z2;
+
+		qDebug() << "y" << y[i];
+		qDebug() << "maxSlope" << maxSlope;
+
+		float throwMeasurement = 0.;
+		float m_alpha = 1; //temp, gonna be given by user
+		if (m_alpha == 0) //if bool isAlphaGiven == false => m_alpha = 0
+		{
+			throwMeasurement = abs(z1 - z2);
+		}
+		else 
+		{
+			//compute a_m = average between the two slopes
+			//compute beta = atan(a_m)
+			//compute deltaB = b2 - b1 = To
+			//b1 = y1 - am*x1
+			//with x1 = z1, x2 = z2?
+
+			//use equation in Puliti's paper
+		}
 
 	}
 	//gets throw value
@@ -481,9 +562,8 @@ void ATMDialog::importGeneratrixFromDB()
 
 void ATMDialog::displayProfilesDlg()
 {
-	ATMDisplayProfilesDlg* ATMDPDlg = new ATMDisplayProfilesDlg(m_segmentList, m_startIdx, m_endIdx, m_transectPos);
-	//ATMDPDlg->displayProfile();
-	//ATMDPDlg->displayChart();
+	ATMDisplayProfilesDlg* ATMDPDlg = new ATMDisplayProfilesDlg(m_segmentList, m_startIdx, 
+		m_endIdx, m_transectPos);
 }
 
 /*
