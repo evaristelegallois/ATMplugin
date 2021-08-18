@@ -35,6 +35,7 @@ using namespace QtCharts;
 static float s_p = 1.00;
 static const char* s_type = "var";
 static int s_size, s_jumps = 0;
+static float s_alpha = 0;
 
 ATMDialog::ATMDialog(ccMainAppInterface* app, std::vector<ccPolyline*> profiles) :
     QDialog(app ? app->getMainWindow() : nullptr),
@@ -52,7 +53,7 @@ ATMDialog::ATMDialog(ccMainAppInterface* app, std::vector<ccPolyline*> profiles)
     connect(genFromDBBtn, &QPushButton::released, this, &ATMDialog::importGeneratrixFromDB);
     //connect(genFromTxtBtn, &QPushButton::released, this, ATMDialog::importGeneratrixFromTxt);
     connect(saveAsTxtBtn, &QPushButton::released, this, &ATMDialog::exportDataAsTxt);
-    //connect(saveAsImgBtn, &QPushButton::released, this, ATMDialog::exportDataAsImg);
+    connect(saveAsImgBtn, &QPushButton::released, this, &ATMDialog::exportDataAsImg);
 
 	m_chartView = new QChartView();
 	baseLayout->addWidget(m_chartView, 1, 2);
@@ -65,34 +66,58 @@ QChart* ATMDialog::createLineChart(float* data, int* id, int n) const
     QChart* chart = new QChart();
     chart->setTitle("Cumulative displacement relative to position on transect");
     QLineSeries* series = new QLineSeries(chart);
+	QScatterSeries* points = new QScatterSeries(chart);
+	points->setMarkerShape(QScatterSeries::MarkerShapeCircle);
+	points->setColor(QColor(0, 255, 0));
+	points->setBorderColor(QColor(0, 255, 0));
+	points->setMarkerSize(5.0);
     //QString name("ID #");
 
-    QCategoryAxis* axisX = new QCategoryAxis;
+    //QValueAxis* axisX = new QValueAxis;
+	QCategoryAxis* axisX = new QCategoryAxis;
     QValueAxis* axisY = new QValueAxis;
     axisX->setTitleText("Position on transect (y)");
     axisY->setTitleText("Cumulative fault displacement (m)"); //not working??
+	axisX->setLabelsPosition(QCategoryAxis::AxisLabelsPositionOnValue);
+
+	float min = -10., max = 10.;
+	for (int i = 0; i < n; i++)
+	{
+		if (data[i] < min) min = data[i] - 10.;
+		if (data[i] > max) max = data[i] + 10.;
+	}
+	axisY->setMin(min);
+	axisY->setMax(max);
+
     for (int i = 0; i < n; i++)
     {
         series->append(id[i], data[i]);
+		//series->append(m_processors[i]->getProfileID(), data[i]);
+		points->append(id[i], data[i]);
 		qDebug() << "y, x" << data[i] << id[i];
         //series->setName(name + QString::number(id[i]));
-        //axisX->append("ID #" + QString::number(m_processors[i]->getProfileID()), i);
+		axisX->append("ID #" + QString::number(m_processors[i]->getProfileID()), i);
+        //axisX->append("ID #" + QString::number(m_processors[i]->getProfileID()), i+1);
+		qDebug() << "id" << m_processors[i]->getProfileID();
     }
     chart->legend()->hide();
     chart->addSeries(series);
+	chart->addSeries(points);
     chart->addAxis(axisX, Qt::AlignBottom);
     chart->addAxis(axisY, Qt::AlignLeft);
     series->attachAxis(axisX);
     series->attachAxis(axisY);
+	points->attachAxis(axisX);
+	points->attachAxis(axisY);
 
     //chart->createDefaultAxes();
     return chart;
 }
 
-
 void ATMDialog::computeSegmentation()
 {
 	s_p = this->pDoubleSpinBox->value();
+	//if (this->alphaCheckBox->isChecked()) s_alpha = static_cast<float> (alphaDoubleSpinBox->value() * 180/M_PI); //in radian
 	if (this->jCheckBox->isChecked()) s_jumps = 1;
 	else s_jumps = 0;
 	if (this->scoreComboBox->currentText() == "Variance of residuals") s_type = "var";
@@ -105,7 +130,6 @@ void ATMDialog::computeSegmentation()
 		msgBox.exec();
 		return;
 	}
-
 	qDebug() << "p" << s_p;
 
 	std::vector<QVector<QVector2D*>> inputs;
@@ -150,49 +174,10 @@ void ATMDialog::computeSegmentation()
 		m_transectPos.push_back(m_processors[i]->getTransectPos());
 		qDebug() << "outputs OK";
 		m_app->addToDB(outputs[i]);
-
-		/*
-		if (outputs.empty())
-			return;
-
-		//we only export 'temporary' objects
-		unsigned exportCount = outputs.size();
-
-		if (!exportCount)
-		{
-			//nothing to do
-			ccLog::Warning("[qThrowMeasurement] All segments are already in DB");
-			return;
-		}
-
-		//ccHObject* destEntity = ccHObject::New("ATMPlugin", "0", "Segmentation results"); //default group -> ID = 0
-		//New(const QString & pluginId, const QString & classId, const char* name = nullptr);
-		//assert(destEntity);
-
-		ccHObject toSave("Segmentation results");
-
-		QMainWindow* mainWin = m_app->getMainWindow();
-
-		//export entites
-		for (auto& output : outputs)
-		{
-
-				//destEntity->addChild(output);
-			toSave.addChild(output);
-			//output->setDisplay_recursive(toSave->getDisplay());
-				//output.isInDB = true;
-				//output->setDisplay_recursive(destEntity->getDisplay());
-				m_app->addToDB(output, false, false);
-
-		}
-
-		ccLog::Print(QString("[qThrowMeasurement] %1 segmentation(s) computed").arg(exportCount));
-		*/
 	}
 
 	//compute displacement
 	computeThrowMeasurement();
-	//compute cumulative displacement
 	m_app->redrawAll();
 
 	//release memory
@@ -206,26 +191,27 @@ void ATMDialog::computeSegmentation()
 
 void ATMDialog::computeThrowMeasurement()
 {
-	//float df, alpha, tExp, tThr, sd1, sd2;
-	float cumulSlope = 0.;
-	float* y = new float[m_profiles.size()];
+	m_y = new float[m_profiles.size()];
+	m_id = new int[m_profiles.size()];
 	int* x = new int[m_profiles.size()];
-	for (int i = 0; i < m_profiles.size(); i++) x[i] = i;
+	for (int i = 0; i < m_profiles.size(); i++)
+	{
+		x[i] = i;
+		m_id[i] = m_processors[i]->getProfileID();
+	}
 
 	for (int i = 0; i < m_profiles.size(); i++)
 	{
 		std::vector<SegmentLinearRegression*> currentProfile;
 		currentProfile.reserve(m_segmentList[i].size());
-		//currentProfile = m_segmentList[i];
+		currentProfile = m_segmentList[i];
 
 	
-		float* xX, * yY;
+		/*float* xX, * yY;
 		int idx = 0;
 		int idxP = m_profiles[i]->size();
 		xX = new float[m_profiles[i]->size()];
 		yY = new float[m_profiles[i]->size()];
-		//xX = new float[1513];
-		//yY = new float[1513];
 		qDebug() << "xX, yY size" << m_profiles[i]->size();
 		for (int u = 0; u < m_segmentList[i].size(); u++)
 		{
@@ -236,6 +222,7 @@ void ATMDialog::computeThrowMeasurement()
 				idx++;
 			}
 		}
+		*/
 
 		//MAGNOLA
 
@@ -312,7 +299,7 @@ void ATMDialog::computeThrowMeasurement()
 		
 		//FUCINO 2
 
-		
+		/*
 		//profile 2
 		currentProfile.push_back(new SegmentLinearRegression(0, 58, xX, yY));
 		currentProfile[0]->setSlope(0.39);
@@ -320,8 +307,8 @@ void ATMDialog::computeThrowMeasurement()
 		currentProfile[1]->setSlope(0.54);
 		currentProfile.push_back(new SegmentLinearRegression(134, 517, xX, yY));
 		currentProfile[2]->setSlope(0.5);
-		
-		
+		*/
+
 
 		std::vector<LinearRegression*> listLR;
 
@@ -340,23 +327,11 @@ void ATMDialog::computeThrowMeasurement()
 				yVal.push_back(static_cast<double> (currentProfile[j]->getPoint(k)->y()));
 			}
 
-			//qDebug() << "nb" << nb;
 			LinearRegression* lr = new LinearRegression(xVal, yVal);
 			listLR.push_back(lr);
 		}
-
-		//for (int k = 0; k < xVal.size(); k++) qDebug() << "xVal, yVal" << xVal[k] << yVal[k];
-
 		// compute HAC
 		std::vector<std::vector<double>> matrix(matrixDistance(listLR));
-
-		/*
-		for (int a = 0; a < matrix.size(); a++)
-		{
-			for (int b = 0; b < matrix[a].size(); b++)
-				qDebug() << "matrix values" << matrix[a][b];
-		}
-		*/
 
 		qDebug() << "listLR size" << listLR.size();
 		qDebug() << "matrix size" << matrix.size();
@@ -388,6 +363,12 @@ void ATMDialog::computeThrowMeasurement()
 		qDebug() << "clustering ok";
 
 		int clusterNb = cluster->get_number_clusters();
+		if (clusterNb == 0)
+		{
+			qDebug() << "The clustering didn't work. Try using a lower p parameter.";
+			break;
+		}
+
 		std::vector<std::vector<TreeNode*>> tnClusters;
 		tnClusters.reserve(clusterNb);
 		std::vector<std::vector<SegmentLinearRegression*>> sgClusters;
@@ -421,11 +402,9 @@ void ATMDialog::computeThrowMeasurement()
 			{
 				maxSlope = averageSlopes[l];
 				maxL = l;
-				qDebug() << "maxL" << maxL;
 			}
 
 			qDebug() << "cluster nb " << l << "average slope" << averageSlopes[l];
-
 			qDebug() << "sgList size" << sgList.size();
 			sgClusters.push_back(sgList);
 		}
@@ -450,7 +429,8 @@ void ATMDialog::computeThrowMeasurement()
 		qDebug() << "start idx list size" << listStart.size();
 		//full profile is covered in green
 
-		float z1 = 0., z2 = 0.;
+		// x = curvilinear abs, y = height (= z), a_m = average slope
+		float x1 = 0., x2 = 0., y1 = 0., y2 = 0, a_m = 0.; 
 		std::vector<std::vector<SegmentLinearRegression*>> tempSgCluster;
 		//NEED TO MAKE THE FOLLOWING WORK FOR SEVERAL PROFILES AT ONCE
 		if (listStart.size() != 1)
@@ -474,12 +454,12 @@ void ATMDialog::computeThrowMeasurement()
 						}
 					}
 					qDebug() << "temp list size" << tempSgList.size();
-
 				}
 			}
 		}
 
 		qDebug() << "segment slopes list size" << segmentSlopes.size();
+		qDebug() << "temp cluster list size" << tempSgCluster.size();
 		if (segmentSlopes.size() != 0)
 		{
 			float maxSl = 0.;
@@ -488,54 +468,78 @@ void ATMDialog::computeThrowMeasurement()
 				if (segmentSlopes[j] > maxSl)
 				{
 					maxSl = segmentSlopes[j];
-					z1 = tempSgCluster[j][0]->getStart().y();
-					z2 = tempSgCluster[j][tempSgCluster.size()-1]->getEnd().y();
+					y1 = tempSgCluster[j][0]->getStart().y();
+					y2 = tempSgCluster[j][tempSgCluster[j].size()-1]->getEnd().y();
+					x1 = tempSgCluster[j][0]->getStart().x();
+					x2 = tempSgCluster[j][tempSgCluster[j].size() - 1]->getEnd().x();
 				}
 			}
-			y[i] = static_cast<float> (maxSl);//nope => throwMeasurement
+			a_m = maxSl;
+			//gets throw measurement value (Tr)
+			m_y[i] = static_cast<float> (computeTr(x1, x2, y1, y2, a_m));
 		}
-
 		else
 		{
-			y[i] = static_cast<float> (maxSlope);//nope => throwMeasurement
-			z1 = sgClusters[maxL][0]->getStart().y();
-			z2 = sgClusters[maxL][0]->getEnd().y();
+			y1 = sgClusters[maxL][0]->getStart().y();
+			y2 = sgClusters[maxL][0]->getEnd().y();
+			x1 = sgClusters[maxL][0]->getStart().x();
+			x2 = sgClusters[maxL][0]->getEnd().x();
+			a_m = maxSlope;
+			//gets throw measurement value (Tr)
+			m_y[i] = static_cast<float> (computeTr(x1, x2, y1, y2, a_m));
 		}
-
-		qDebug() << "z1, z2" << z1 << z2;
-
-		qDebug() << "y" << y[i];
-		qDebug() << "maxSlope" << maxSlope;
-
-		float throwMeasurement = 0.;
-		float m_alpha = 1; //temp, gonna be given by user
-		if (m_alpha == 0) //if bool isAlphaGiven == false => m_alpha = 0
-		{
-			throwMeasurement = abs(z1 - z2);
-		}
-		else 
-		{
-			//compute a_m = average between the two slopes
-			//compute beta = atan(a_m)
-			//compute deltaB = b2 - b1 = To
-			//b1 = y1 - am*x1
-			//with x1 = z1, x2 = z2?
-
-			//use equation in Puliti's paper
-		}
-
 	}
-	//gets throw value
 	//compute cumulative throw along somewhat curvilinear abscissa
-
-	m_chart = createLineChart(y, x, m_profiles.size());
+	m_chart = createLineChart(m_y, x, m_profiles.size());
 	m_chartView->setChart(m_chart);
 	m_chartView->update();
 }
 
+float ATMDialog::computeTr(float x1, float x2, float y1, float y2, float a_m)
+{
+	float throwMeasurement = 0.;
+	s_alpha = M_PI / 3; //temp, gonna be given by user; needs to be in rad
+	if (s_alpha == 0) throwMeasurement = abs(x1 - x2);
+	else
+	{
+		float beta = atan(a_m);
+		float b1 = y1 - a_m * x1;
+		float b2 = y2 - a_m * x2;
+		float deltaB = abs(b1 - b2);
+		qDebug() << "deltaB" << deltaB;
+		//equation taken from Puliti et al, 2020
+		throwMeasurement = (deltaB * (sin(s_alpha) * sin(beta + M_PI / 2))) / sin(s_alpha - beta);
+	}
+
+	qDebug() << "Tr" << throwMeasurement;
+	return throwMeasurement;
+}
+
 void ATMDialog::exportDataAsTxt()
 {
-	
+	//open file saving dialog
+	QString path = QString("displacementData_coordinates");
+	QString outputFilename = QFileDialog::getSaveFileName(this, "Select destination",
+		path, tr("Text files(*.txt)"));
+
+	if (outputFilename.isEmpty())
+		return;
+
+	//coordinates
+	QFile file(outputFilename);
+	qDebug() << outputFilename;
+	if (file.open(QIODevice::ReadWrite)) {
+		QTextStream stream(&file);
+		stream << "Tr" << "\t" << "profile #ID" << "\n";
+
+		for (int i = 0; i < m_segmentList.size(); i++)
+		{
+			stream << m_y[i] << "\t" << m_id[i] << "\n";
+		}
+
+		//when done
+		file.close();
+	}
 }
 
 void ATMDialog::importGeneratrixFromDB()
@@ -566,32 +570,21 @@ void ATMDialog::displayProfilesDlg()
 		m_endIdx, m_transectPos);
 }
 
-/*
+
 void ATMDialog::exportDataAsImg()
 {
-
-    QPixmap p( chartView->size() );
-    chartView->render( &p );
-    p.save("a.png", "PNG");
+    QPixmap p(m_chartView->size());
+    //m_chartView->render(&p);
 
     //open file saving dialog
-    QString outputFilename = QFileDialog::getSaveFileName(nullptr, "Select destination", destinationPathLineEdit->text(), saveFileFilter);
+    QString outputFilename = QFileDialog::getSaveFileName(nullptr, "Select destination", tr("Images (*.png *.jpg)"));
 
     if (outputFilename.isEmpty())
         return;
 
-    destinationPathLineEdit->setText(outputFilename);
+	p.save(outputFilename);
 
-    //FacetsExportDlg fDlg(FacetsExportDlg::SHAPE_FILE_IO, m_app->getMainWindow()); //gets what's above
-
-    //persistent settings (default export path)
-    QSettings settings;
-    settings.beginGroup("qFacets");
-    QString facetsSavePath = settings.value("exportPath", ccFileUtils::defaultDocPath()).toString();
-    fDlg.destinationPathLineEdit->setText(facetsSavePath + QString("/facets.shp"));
-
-    if (!fDlg.exec())
-        return;
+    /*destinationPathLineEdit->setText(outputFilename);
 
     QString filename = fDlg.destinationPathLineEdit->text();
 
@@ -605,25 +598,8 @@ void ATMDialog::exportDataAsImg()
             return;
     }
 
-
-            std::vector<GenericDBFField*> fields;
-        fields.push_back(&facetIndex);
-        fields.push_back(&facetBarycenter);
-        fields.push_back(&facetNormal);
-        fields.push_back(&facetRMS);
-        fields.push_back(&horizExtension);
-        fields.push_back(&vertExtension);
-        fields.push_back(&surfaceExtension);
-        fields.push_back(&facetSurface);
-        fields.push_back(&facetDipDir);
-        fields.push_back(&facetDip);
-        fields.push_back(&familyIndex);
-        fields.push_back(&subfamilyIndex);
-        ShpFilter filter;
-        filter.treatClosedPolylinesAsPolygons(true);
-        ShpFilter::SaveParameters params;
-        params.alwaysDisplaySaveDialog = false;
-        if (filter.saveToFile(&toSave, fields, filename, params) == CC_FERR_NO_ERROR)
+       /* 
+	   if (img.save(const QString & fileName, PNG)
         {
             m_app->dispToConsole(QString("[qFacets] File '%1' successfully saved").arg(filename), ccMainAppInterface::STD_CONSOLE_MESSAGE);
         }
@@ -631,10 +607,8 @@ void ATMDialog::exportDataAsImg()
         {
             m_app->dispToConsole(QString("[qFacets] Failed to save file '%1'!").arg(filename), ccMainAppInterface::WRN_CONSOLE_MESSAGE);
         }
+		*/
 }
-
-
-*/
 
 /*
 ATMDialog::~ATMDialog()

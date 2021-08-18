@@ -197,8 +197,9 @@ QVector2D profileProcessor::getIntersection(QVector2D p1, QVector2D p2, QVector2
 	return i;
 }
 
-char profileProcessor::getProfileID()
+int profileProcessor::getProfileID()
 {
+	//qDebug() << "id" << m_profileID;
 	return m_profileID;
 }
 

@@ -72,11 +72,11 @@ QChart* ATMDisplayProfilesDlg::createLineChart(float* x, float* y, int n) const
 	axisY->setTitleText("Height (m)");
 
 	for (int i = 0; i < n; i++) series->append(x[i], y[i]);
-
+	qDebug() << "selected index" << getSelectedIndex();
 	if (m_transectPos[getSelectedIndex()] == 0) transectPos->append(-1, -1);
 	else transectPos->append(x[m_transectPos[getSelectedIndex()]], 
 		y[m_transectPos[getSelectedIndex()]]); //generatrix position
-	qDebug() << "gen pos" << m_transectPos[getSelectedIndex()];
+	//qDebug() << "gen pos" << m_transectPos[getSelectedIndex()];
 	for (int j = 0; j < m_startIdx[getSelectedIndex()].size(); j++)
 	{
 		for (int k = m_startIdx[getSelectedIndex()][j]; k <= m_endIdx[getSelectedIndex()][j]; k++)
@@ -105,6 +105,7 @@ QChart* ATMDisplayProfilesDlg::createLineChart(float* x, float* y, int n) const
 void ATMDisplayProfilesDlg::displayChart()
 {
 	displayProfile(getSelectedIndex());
+	m_chartView->update();
 }
 
 //LIST ISNT CLEARED SO NEED TO ADD UNIQUE ID AND P IN CASE PEOPLE WANT TO COMPARE 
@@ -146,7 +147,10 @@ int ATMDisplayProfilesDlg::getSelectedIndex() const
 {
 	//get selected items
 	QList<QListWidgetItem*> list = profileList->selectedItems();
-	return list.empty() ? -1 : profileList->row(list.front());
+	if (list.isEmpty()) return -1; //display error message
+
+	else if (profileList->currentRow() == -1) return 0;
+	else return profileList->currentRow();
 }
 
 void ATMDisplayProfilesDlg::setItems(const QStringList& items, int defaultSelectedIndex)

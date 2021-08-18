@@ -76,7 +76,6 @@ double distance_comparison_slope(const LinearRegression& l1, const LinearRegress
 {
 	double a1 = l1.getSlope();
 	double a2 = l2.getSlope();
-	//qDebug() << "a1, a2" << a1 << a2;
 
 	double b1 = l1.getOrdinate();
 	double b2 = l2.getOrdinate();
@@ -111,5 +110,4 @@ double distance_comparison_slope(const LinearRegression& l1, const LinearRegress
 
 	double t = abs(a1 - a2) / sqrt(Sa1 + Sa2);
 	return t;
-	//return static_cast<double> (abs(a1 - a2));
 }

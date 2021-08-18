@@ -26,7 +26,9 @@ public:
     QChart* createLineChart(float* data, int* id, int n) const;
     void computeSegmentation();
     void computeThrowMeasurement();
+    float computeTr(float x1, float x2, float y1, float y2, float a_m);
     void exportDataAsTxt();
+    void exportDataAsImg();
     void importGeneratrixFromDB();
     void displayProfilesDlg();
 
@@ -47,6 +49,9 @@ protected:
     QChartView* m_chartView;
 
     ccPolyline* m_generatrix = nullptr;
+
+    float* m_y;
+    int* m_id;
 };
 
 #endif // ATMDIALOG_H
