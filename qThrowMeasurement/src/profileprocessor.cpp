@@ -43,7 +43,7 @@ QVector<QVector2D*> profileProcessor::profileToXY()
 				m_inputProfile->getPoint(i + 1)->y);
 			intercept = getIntersection(genStart, genEnd, profStart, profEnd);
 
-			qDebug() << "intercept" << (double) intercept.x() << (double) intercept.y();
+			//qDebug() << "intercept" << (double) intercept.x() << (double) intercept.y();
 			//if (intercept.x() != 0) qDebug() << "true";
 
 			if (intercept.x() + 0.01 * intercept.x() < m_inputProfile->getPoint(i)->x

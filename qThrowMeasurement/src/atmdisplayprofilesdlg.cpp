@@ -3,8 +3,15 @@
 
 #include "qatmselectentitiesdlg.h"
 
-#include <QtCharts>
+//qCC_plugins
+#include "ccMainAppInterface.h"
+
+//Qt
+#include <QSettings>
+#include <QMainWindow>
+#include <QApplication>
 #include <QDebug>
+#include <QtCharts>
 
 using namespace QtCharts;
 
@@ -22,9 +29,10 @@ ATMDisplayProfilesDlg::ATMDisplayProfilesDlg(std::vector<std::vector<SegmentLine
 
 	connect(saveAsTxtBtn, &QPushButton::released, this, &ATMDisplayProfilesDlg::exportDataAsTxt);
 	connect(saveAllAsTxtBtn, &QPushButton::released, this, &ATMDisplayProfilesDlg::exportAllDataAsTxt);
-	//connect(saveAsImgBtn, &QPushButton::released, this, ATMDialog::exportDataAsImg);
+	connect(saveAsImgBtn, &QPushButton::released, this, &ATMDisplayProfilesDlg::exportDataAsImg);
+	connect(saveAllAsImgBtn, &QPushButton::released, this, &ATMDisplayProfilesDlg::exportAllDataAsImg);
 	connect(profileList, &QListWidget::currentRowChanged, this, 
-		&ATMDisplayProfilesDlg::displayChart); //updates at the next click, TO EDIT
+		&ATMDisplayProfilesDlg::displayChart);
 
 	this->setModal(false);
 
@@ -72,7 +80,6 @@ QChart* ATMDisplayProfilesDlg::createLineChart(float* x, float* y, int n) const
 	axisY->setTitleText("Height (m)");
 
 	for (int i = 0; i < n; i++) series->append(x[i], y[i]);
-	qDebug() << "selected index" << getSelectedIndex();
 	if (m_transectPos[getSelectedIndex()] == 0) transectPos->append(-1, -1);
 	else transectPos->append(x[m_transectPos[getSelectedIndex()]], 
 		y[m_transectPos[getSelectedIndex()]]); //generatrix position
@@ -283,10 +290,29 @@ void ATMDisplayProfilesDlg::exportAllDataAsTxt()
 	}
 }
 
-
-/*
-ATMDisplayProfilesDlg::~ATMDisplayProfilesDlg()
+void ATMDisplayProfilesDlg::exportDataAsImg()
 {
-	delete ui;
+	//open file saving dialog
+	QString outputFilename = QFileDialog::getSaveFileName(this, "Select destination", tr("Images (*.png *.jpg)"));
+
+	if (outputFilename.isEmpty())
+		return;
+
+	QImage* img = new QImage(m_chartView->size().width(), m_chartView->size().height(), QImage::Format_ARGB32_Premultiplied);
+	QPainter p(img);
+	m_chartView->render(&p);
+	p.end();
+	img->save(outputFilename);
+
+	/*if (img->save(outputFilename))
+		m_app->dispToConsole(QString("[qATM] Image '%1' successfully saved.").arg(outputFilename),
+			ccMainAppInterface::STD_CONSOLE_MESSAGE);
+	else m_app->dispToConsole(QString("[qATM] Failed to save image '%1'!").arg(outputFilename),
+		ccMainAppInterface::WRN_CONSOLE_MESSAGE);*/
+
 }
-*/
+
+void ATMDisplayProfilesDlg::exportAllDataAsImg()
+{
+
+}

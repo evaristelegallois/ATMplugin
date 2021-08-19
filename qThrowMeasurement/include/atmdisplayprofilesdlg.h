@@ -10,6 +10,7 @@
 #include <QChart>
 
 using namespace QtCharts;
+class ccMainAppInterface;
 
 /*
 namespace Ui {
@@ -32,6 +33,7 @@ public:
     void exportDataAsTxt();
     void exportAllDataAsTxt();
     void exportDataAsImg();
+    void exportAllDataAsImg();
 
 private:
     QChart* createLineChart(float* x, float* y, int n) const;
@@ -46,6 +48,9 @@ private:
     std::vector<std::vector<SegmentLinearRegression*>> m_entities;
     std::vector<std::vector<int>> m_startIdx, m_endIdx;
     std::vector<int> m_transectPos;
+
+protected:
+    ccMainAppInterface* m_app;
 };
 
 #endif // ATMDISPLAYPROFILESDLG_H

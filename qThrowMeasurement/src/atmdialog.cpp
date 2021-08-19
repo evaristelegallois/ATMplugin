@@ -177,7 +177,7 @@ void ATMDialog::computeSegmentation()
 	}
 
 	//compute displacement
-	computeThrowMeasurement();
+	//computeThrowMeasurement();
 	m_app->redrawAll();
 
 	//release memory
@@ -573,46 +573,22 @@ void ATMDialog::displayProfilesDlg()
 
 void ATMDialog::exportDataAsImg()
 {
-    QPixmap p(m_chartView->size());
-    //m_chartView->render(&p);
-
     //open file saving dialog
-    QString outputFilename = QFileDialog::getSaveFileName(nullptr, "Select destination", tr("Images (*.png *.jpg)"));
+    QString outputFilename = QFileDialog::getSaveFileName(this, "Select destination", tr("Images (*.png *.jpg)"));
 
     if (outputFilename.isEmpty())
         return;
 
-	p.save(outputFilename);
+	QImage* img = new QImage(m_chartView->size().width(), m_chartView->size().height(), QImage::Format_ARGB32_Premultiplied);
+	QPainter p(img);
+	m_chartView->render(&p);
+	p.end();
+	img->save(outputFilename);
+ 
+	if (img->save(outputFilename)) 
+		m_app->dispToConsole(QString("[qATM] Image '%1' successfully saved.").arg(outputFilename),
+			ccMainAppInterface::STD_CONSOLE_MESSAGE);
+    else m_app->dispToConsole(QString("[qATM] Failed to save image '%1'!").arg(outputFilename), 
+		ccMainAppInterface::WRN_CONSOLE_MESSAGE);
 
-    /*destinationPathLineEdit->setText(outputFilename);
-
-    QString filename = fDlg.destinationPathLineEdit->text();
-
-    //save current export path to persistent settings
-    settings.setValue("exportPath", QFileInfo(filename).absolutePath());
-
-    if (QFile(filename).exists())
-    {
-        //if the file already exists, ask for confirmation!
-        if (QMessageBox::warning(m_app->getMainWindow(), "File already exists!", "File already exists! Are you sure you want to overwrite it?", QMessageBox::Yes, QMessageBox::No) == QMessageBox::No)
-            return;
-    }
-
-       /* 
-	   if (img.save(const QString & fileName, PNG)
-        {
-            m_app->dispToConsole(QString("[qFacets] File '%1' successfully saved").arg(filename), ccMainAppInterface::STD_CONSOLE_MESSAGE);
-        }
-        else
-        {
-            m_app->dispToConsole(QString("[qFacets] Failed to save file '%1'!").arg(filename), ccMainAppInterface::WRN_CONSOLE_MESSAGE);
-        }
-		*/
 }
-
-/*
-ATMDialog::~ATMDialog()
-{
-    delete ui;
-}
-*/

@@ -133,22 +133,30 @@ int* dPPiecewiseLinearRegression::getMaximumIndexes()
     float score = 0., maxScore = -3.40282e+038, prevScore = -m_p, currentScore = 0.;
     maxScores[1]= static_cast<float> (-m_p);
 
-    for (int j = 2; j < m_n; j++)
+    for (int j = 1; j < m_n; j++)
     {
         //int i_range = m_maxL - m_minL + 1; // i in [j-maxL, j-minL +1]
+        idx = std::max(m_maxL-(j+1),0);
         //computation of all scores for a given j
-        for (int i = j - m_maxL; i < j - m_minL + 1; i++)
+        for (int i = idx; i < m_maxL - m_minL + 1; i++)
         {
-            idx = i - (j - m_maxL); //are written over multiple times??
-            if (i == 1 && m_j == 1) prevScore = 1; //S0 aka P?
-            else prevScore = maxScores[idx - m_j];
-            scores[idx] = prevScore + computeVScore(j, idx) - m_p;
+            // current index i = (j+1)-maxl+1+idx - 1-based index
+            int k = (j + 1) - m_maxL + i; // 0-based array index i
+            int ij = k - 1; // sum of squares subtraction index
+            //int n = j - ij; // length of segment i -> j
+            //qDebug() << "k" << k;
+
+            //idx = i - (j - m_maxL); //are written over multiple times??
+            if (k - m_j == -1) prevScore = 1; //S0 aka P?
+            else prevScore = maxScores[k - m_j];
+            scores[idx] = prevScore + computeVScore(j, ij) - m_p;
             //qDebug() << "idx" << idx;
         }
 
         //computation of max score for a given j
-        for (int i = j - m_maxL; i < j - m_minL + 1; i++)
+        for (int i = idx; i < m_maxL - m_minL + 1; i++)
         {
+            //qDebug() << "score, maxScore" << scores[i] << maxScore;
             if (scores[i] > maxScore)
             {
                 maxScore = scores[i];
@@ -156,8 +164,11 @@ int* dPPiecewiseLinearRegression::getMaximumIndexes()
             }
         }
 
+        //S[j] = max(si);
+        //idx = which_max(si);
+
         maxScores[j] = maxScore;
-        i_max[j] = idx + (j - m_maxL);
+        i_max[j] = idx + (j - m_maxL) + 1 + 1;
     }
 
     /*scores[0] = 0;
