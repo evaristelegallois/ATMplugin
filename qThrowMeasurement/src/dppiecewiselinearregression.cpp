@@ -90,18 +90,23 @@ float dPPiecewiseLinearRegression::computeVScore(int i, int j)
 
     return  (-1. * residuals / static_cast<float>(m_n - 1.));
     */
-
+    int start = 0, end = 0;
+    if (i < j) start = i, end = j;
+    else start = j, end = i;
+    //qDebug() << "start, end" << start << end;
 
     float var1 = 0., var2 = 0.;
-    float meanY = computeArithmeticMean(m_y, i, j);
-    float slope = computeSlope(i, j);
-    float intercept = computeIntercept(i, j);
+    float meanY = computeArithmeticMean(m_y, start, end);
+    float slope = computeSlope(start, end);
+    float intercept = computeIntercept(start, end);
 
-    for (int k = i; k < j + 1; k++)
+    for (int k = start; k < end + 1; k++)
     {
         var1 += (slope*m_x[k] + intercept - m_y[k]) * (slope * m_x[k] + intercept - m_y[k]);
         var2 += (m_y[k] - meanY) * (m_y[k] - meanY);
     }
+
+    //qDebug() << "var1, var2" << var1 << var2;
 
     return static_cast<float>(-1.*(var1 / var2));
 }
@@ -131,7 +136,10 @@ int* dPPiecewiseLinearRegression::getMaximumIndexes()
     m_maxL = m_n; //get parameter if user input
     int idx = 0;
     float score = 0., maxScore = -3.40282e+038, prevScore = -m_p, currentScore = 0.;
+    maxScores[0] = static_cast<float> (-m_p);
     maxScores[1]= static_cast<float> (-m_p);
+
+    int* imax = new int[m_n];
 
     for (int j = 1; j < m_n; j++)
     {
@@ -147,102 +155,37 @@ int* dPPiecewiseLinearRegression::getMaximumIndexes()
             //qDebug() << "k" << k;
 
             //idx = i - (j - m_maxL); //are written over multiple times??
-            if (k - m_j == -1) prevScore = 1; //S0 aka P?
+            if (k - m_j == -1) prevScore = -m_p; //S0 aka P?
             else prevScore = maxScores[k - m_j];
-            scores[idx] = prevScore + computeVScore(j, ij) - m_p;
-            //qDebug() << "idx" << idx;
+            //qDebug() << "prevscore" << prevScore;
+            if (ij < 0) scores[i] = prevScore + computeVScore(0, j) - m_p;
+            else scores[i] = prevScore + computeVScore(j, ij) - m_p;
         }
-
+        
         //computation of max score for a given j
+        int index = 0;
         for (int i = idx; i < m_maxL - m_minL + 1; i++)
         {
             //qDebug() << "score, maxScore" << scores[i] << maxScore;
             if (scores[i] > maxScore)
             {
                 maxScore = scores[i];
-                idx = i;
+                index = i;
             }
         }
 
         //S[j] = max(si);
         //idx = which_max(si);
 
-        maxScores[j] = maxScore;
-        i_max[j] = idx + (j - m_maxL) + 1 + 1;
+        if (j > 1) maxScores[j] = maxScore;
+        qDebug() << "max score @ j" << maxScores[j];
+        imax[m_maxL-j+1] = index /*+ (j - m_maxL) + 1*/; // 0-based
+        //qDebug() << "idx end" << idx;
     }
 
-    /*scores[0] = 0;
-    scores[1] = prevScore;
-    //qDebug() << "score 0, 1" << scores[0] << scores[1];
-    for (int i = 2; i < j; i++)
-    {
-            currentScore = computeVScore(0, i);
-            scores[i] = prevScore - currentScore - m_p; //default
-            if (scores[i] > prevScore) prevScore = scores[i];
+    //for (int j = 0; j < m_n; j++) qDebug() << "imax @ j" << j << imax[j];
 
-            //score = scores[i];
-            //qDebug() << "score" << score << "currentScore" << currentScore;
-
-            qDebug() << "score i" << scores[i]<< "prevscore" << prevScore;
-
-    }
-
-    for (int i = 2; i < j; i++)
-    {
-        if (scores[i] > maxScore)
-        {
-            maxScore = scores[i];
-            i_max = i;
-        }
-    }
-
-    qDebug() << "maxScore" << maxScore;*/
-
-    /*
-        for (int i = (j - m_maxL); i < (j - m_minL); i++)
-        {
-            //qDebug() << "score" << score;
-            if (m_type == "rsquare")
-            {
-                currentScore = computeRScore(i, j);
-                score = prevScore + currentScore - m_p;
-            }
-            else
-            {
-                currentScore = computeVScore(i, j);
-                score = prevScore + currentScore - m_p; //default
-                if (score > prevScore) prevScore = score;
-                //qDebug() << "score" << score << "currentScore" << currentScore;
-                //qDebug() << "minScore" << minScore << "maxScore" << maxScore;
-            }
-
-            if (score > maxScore)
-            {
-                maxScore = score;
-                i_max = i;
-            }
-        }
-        */
-
-    return i_max;
-
-
-    /*int i = 0, i_max = 0;
-    float score = 0., maxScore = /*3.40282e+038 -m_p;
-
-    for (int i = 0; i < j + 1; i++)
-    {
-        if (m_type == "rsquare") score = computeRScore(i, j) - m_p;
-        else score = computeVScore(i, j) - m_p; //default
-
-        if (score < maxScore)
-        {
-            maxScore = score;
-            i_max = i;
-        }
-    }
-
-    return i_max;*/
+    return imax;
 }
 
 std::vector<SegmentLinearRegression*> dPPiecewiseLinearRegression::computeSegmentation()
@@ -250,15 +193,17 @@ std::vector<SegmentLinearRegression*> dPPiecewiseLinearRegression::computeSegmen
     QVector<int> maxI;
     int end = m_n - 1; // an array of size n goes from 0 to n-1
     maxI.push_front(end);
+    qDebug() << "end" << end;
 
-    int* i_max = new int[m_n];
     i_max = getMaximumIndexes();
 
     //backtracing
     for ( ; end > 1; end)
     {
+        qDebug() << "imax @ end" << i_max[end];
         end = i_max[end] - m_j;
         maxI.push_front(end);
+        qDebug() << "end" << end;
     }
 
     if (m_j != 0) maxI[0] = 0;

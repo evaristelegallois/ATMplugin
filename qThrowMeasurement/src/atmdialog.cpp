@@ -32,7 +32,7 @@
 using namespace QtCharts;
 
 //semi-persistent dialog values
-static float s_p = 1.00;
+static float s_p = 0.01;
 static const char* s_type = "var";
 static int s_size, s_jumps = 0;
 static float s_alpha = 0;
