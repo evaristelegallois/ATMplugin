@@ -22,6 +22,8 @@ public:
     float computeVar(int i, int j);
     QVector2D computeAltVar(int i, int j);
 
+    std::vector<int> profile_segmentation();
+
     int* getMaximumIndexes();
     std::vector<SegmentLinearRegression*> computeSegmentation();
 

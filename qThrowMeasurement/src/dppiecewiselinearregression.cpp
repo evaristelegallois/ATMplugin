@@ -77,24 +77,24 @@ float dPPiecewiseLinearRegression::computeRSquare(int i, int j)
 ////SCORING FUNCTION (variance of residuals based)
 float dPPiecewiseLinearRegression::computeVScore(int i, int j)
 {
-    /*
+    int start = 0, end = 0;
+    if (i < j) start = i, end = j;
+    else start = j, end = i;
+    //qDebug() << "start, end" << start << end;
+    
     float residuals = 0.;
-    float slope = computeSlope(i, j);
-    float intercept = computeIntercept(i, j);
+    float slope = computeSlope(start, end);
+    float intercept = computeIntercept(start, end);
 
-    for (int k = i; k < j+1; k++)
+    for (int k = start; k < end+1; k++)
     {
         float delta_k = m_y[k] - intercept - slope * m_x[k];
         residuals += delta_k * delta_k;
     }
 
-    return  (-1. * residuals / static_cast<float>(m_n - 1.));
-    */
-    int start = 0, end = 0;
-    if (i < j) start = i, end = j;
-    else start = j, end = i;
-    //qDebug() << "start, end" << start << end;
-
+    return  (-1. * residuals / static_cast<float>(end - start + 1.));
+    
+    /*
     float var1 = 0., var2 = 0.;
     float meanY = computeArithmeticMean(m_y, start, end);
     float slope = computeSlope(start, end);
@@ -108,7 +108,8 @@ float dPPiecewiseLinearRegression::computeVScore(int i, int j)
 
     //qDebug() << "var1, var2" << var1 << var2;
 
-    return static_cast<float>(-1.*(var1 / var2));
+    return static_cast<float>(-1. * (var1 / var2));
+    */
 }
 
 float dPPiecewiseLinearRegression::computeVar(int i, int j)
@@ -158,7 +159,7 @@ int* dPPiecewiseLinearRegression::getMaximumIndexes()
             if (k - m_j == -1) prevScore = -m_p; //S0 aka P?
             else prevScore = maxScores[k - m_j];
             //qDebug() << "prevscore" << prevScore;
-            if (ij < 0) scores[i] = prevScore + computeVScore(0, j) - m_p;
+            if (ij < 0) scores[i] = prevScore + computeVScore(1, j) - m_p;
             else scores[i] = prevScore + computeVScore(j, ij) - m_p;
         }
         
@@ -188,15 +189,117 @@ int* dPPiecewiseLinearRegression::getMaximumIndexes()
     return imax;
 }
 
+std::vector<int> dPPiecewiseLinearRegression::profile_segmentation()
+{
+ 
+    int n_atoms = m_n;
+    std::vector<double> val_x;
+    std::vector<double> val_y;
+
+    //. Build 2D data
+    for (int i = 0; i < n_atoms; i++) {
+        val_x.push_back(m_x[i]);
+        val_y.push_back(m_y[i]);
+    }
+
+
+    std::vector<std::vector<double>> S;
+    std::vector<double> S0;
+    S0.push_back(-1 * m_p);
+    std::vector<double> max_Sj;
+    max_Sj.push_back(-1 * m_p);
+
+    //. Compute scores
+    for (int j = 1; j < n_atoms; j++) {
+        std::vector<double> Sj;
+
+        //. Loop between 0 and j, in order to find max_S
+        for (int i1 = 0; i1 < j; i1++) {
+            auto f2_x = val_x.cbegin() + i1;
+            auto l2_x = val_x.cbegin() + j + 1;
+            auto f2_y = val_y.cbegin() + i1;
+            auto l2_y = val_y.cbegin() + j + 1;
+
+            std::vector<double> vec2_x(f2_x, l2_x);
+            std::vector<double> vec2_y(f2_y, l2_y);
+            //SimpleRegression sreg2;
+            double Si1_2 = 0.;
+            Si1_2 = computeVScore(i1, j);
+
+            double Si1 = Si1_2;
+            Sj.push_back(Si1);
+        }
+        S.push_back(Sj);
+        double cur_max_Sj = *std::max_element(Sj.begin(), Sj.end() - 1);
+        max_Sj.push_back(cur_max_Sj);
+    }
+
+    int nb_Smax = max_Sj.size();
+    std::vector<double> shift;
+    auto i1 = max_Sj.cbegin();
+    for (int i = 0; i < nb_Smax; i++) {
+        auto i2 = max_Sj.cbegin() + i + 1;
+        std::vector<double> max_Sj_i(i1, i2);
+        double min_Smax = *std::min_element(max_Sj_i.begin(), max_Sj_i.end());
+        shift.push_back(min_Smax);
+    }
+
+    std::vector<double> scores;
+    scores.push_back(shift[0] + max_Sj[0]);
+    for (int i = 1; i < nb_Smax; i++) {
+        double score_i = shift[i - 1] + max_Sj[i];
+        scores.push_back(score_i);
+    }
+
+    //. Print max_Sj
+    int nb_S = S.size();
+    int max_elem = -1;
+    for (int j = 0; j < nb_S; j++) {
+        std::vector<double> Sj = S[j];
+        int nb_elem = Sj.size();
+        if (nb_elem > max_elem) {
+            max_elem = nb_elem;
+        }
+    }
+
+    for (int i = 0; i < nb_Smax; i++)
+        qDebug() << i << "max Sj" << max_Sj[i] << "shift" << shift[i] << "scores" << scores[i];
+
+    //. Backtracing
+    int S_idx = S.size() - 1;
+    int max_Sj_idx = max_Sj.size() - 1;
+    int idx = n_atoms - 1;
+    //if (max_Sj_idx != idx) return;
+
+    std::vector<int> break_points;
+    break_points.push_back(n_atoms - 1);
+
+    while (idx > 0) {
+        int imin = idx;
+        double min_S = scores[idx];
+        for (int i1 = idx; i1 >= 0; i1--) {
+            double val = scores[i1];
+            if (val < min_S) {
+                min_S = val;
+                imin = i1;
+            }
+        }
+        break_points.insert(break_points.begin(), imin);
+        idx = imin - 1;
+    }
+
+    return break_points;
+}
+
 std::vector<SegmentLinearRegression*> dPPiecewiseLinearRegression::computeSegmentation()
 {
     QVector<int> maxI;
     int end = m_n - 1; // an array of size n goes from 0 to n-1
-    maxI.push_front(end);
-    qDebug() << "end" << end;
+    //maxI.push_front(end);
+    //qDebug() << "end" << end;
 
-    i_max = getMaximumIndexes();
-
+    //i_max = getMaximumIndexes();
+    /*
     //backtracing
     for ( ; end > 1; end)
     {
@@ -205,13 +308,19 @@ std::vector<SegmentLinearRegression*> dPPiecewiseLinearRegression::computeSegmen
         maxI.push_front(end);
         qDebug() << "end" << end;
     }
+    */
 
-    if (m_j != 0) maxI[0] = 0;
-    else maxI[0] = 0;
+    std::vector<int> imax = profile_segmentation();
+    for (int i = 0; i < imax.size(); i++) maxI.push_back(imax[i]);
+
+    //if (m_j != 0) maxI[0] = 0;
+    //else maxI[0] = 0;
+
+    maxI[0] = 0;
 
     qDebug() << "maxI size" << maxI.size();
 
-    //for (int k =0; k < maxI.size(); k++) qDebug() << "maxI" << maxI[k];
+    for (int k =0; k < maxI.size(); k++) qDebug() << "maxI" << maxI[k];
     int nbVert = 0;
     for (int k = 0; k < maxI.size()-1; k++)
     {

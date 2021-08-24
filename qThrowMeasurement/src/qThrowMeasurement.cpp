@@ -1,6 +1,6 @@
 //##########################################################################
 //#                                                                        #
-//#                CLOUDCOMPARE PLUGIN: ExamplePlugin                      #
+//#                CLOUDCOMPARE PLUGIN: ATMPlugin                          #
 //#                                                                        #
 //#  This program is free software; you can redistribute it and/or modify  #
 //#  it under the terms of the GNU General Public License as published by  #
@@ -11,7 +11,7 @@
 //#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         #
 //#  GNU General Public License for more details.                          #
 //#                                                                        #
-//#                             COPYRIGHT: XXX                             #
+//#                    COPYRIGHT: Gabriel Parel                            #
 //#                                                                        #
 //##########################################################################
 
@@ -40,39 +40,30 @@
 #include <ccPointCloud.h>
 #include <ccPolyline.h>
 #include <ccProgressDialog.h>
+#include "ccFacet.h"
 
+//qATM
 #include "qThrowMeasurement.h"
 #include "ccMainAppInterface.h"
 #include "qatmselectentitiesdlg.h"
 #include "atmdisplayprofilesdlg.h"
 
-#include "ActionA.h"
-#include "ActionA.cpp"
-
-#include <QFile>
-#include <QTextStream>
-
-#include "ccFacet.h"
-
 //Qt
 #include <QMainWindow>
 #include <QVector2D>
 #include <QVector>
-
+#include <QFile>
+#include <QTextStream>
 
 //CCCoreLib
 #include <GeometricalAnalysisTools.h>
 #include <Jacobi.h>
 
-
 using namespace CCCoreLib;
 
 static double m_radius = 5.0;
 
-
-// Default constructor:
-//	- pass the Qt resource path to the info.json file (from <yourPluginName>.qrc file) 
-//  - constructor should mainly be used to initialize actions and other members
+// Default constructor
 qThrowMeasurement::qThrowMeasurement( QObject *parent )
 	: QObject( parent )
     , ccStdPluginInterface( ":/CC/plugin/qThrowMeasurement/info.json" )
@@ -95,7 +86,6 @@ void qThrowMeasurement::onNewSelection( const ccHObject::Container &selectedEnti
 	if (m_computeAngularDifference)
 		m_computeAngularDifference->setEnabled(selectedEntities.size() == 1 && 
 			selectedEntities.back()->isA(CC_TYPES::HIERARCHY_OBJECT));
-
 }
 
 // This method returns all the 'actions' your plugin can perform.
@@ -105,12 +95,9 @@ QList<QAction *> qThrowMeasurement::getActions()
 	// default action (if it has not been already created, this is the moment to do it)
 	if (!m_computeThrowMeasurement)
 	{
-		// Here we use the default plugin name, description, and icon,
-		// but each action should have its own.
 		m_computeThrowMeasurement = new QAction("Throw", this );
 		m_computeThrowMeasurement->setToolTip( "" );
 		m_computeThrowMeasurement->setIcon(QIcon(QString::fromUtf8(":/CC/plugin/qThrowMeasurement/img/angularDiff.png")));
-		
 		// Connect appropriate signal
 		connect(m_computeThrowMeasurement, &QAction::triggered, this, &qThrowMeasurement::computeThrowMeasurement);
 	}
@@ -120,7 +107,7 @@ QList<QAction *> qThrowMeasurement::getActions()
 		m_computeAngularDifference = new QAction("Angle", this);
 		m_computeAngularDifference->setToolTip("");
 		m_computeAngularDifference->setIcon(QIcon(QString::fromUtf8(":/CC/plugin/qThrowMeasurement/img/angularDiff.png")));
-		//connect signal
+		// Connect appropriate signal
 		connect(m_computeAngularDifference, &QAction::triggered, this, &qThrowMeasurement::compute);
 	}
 

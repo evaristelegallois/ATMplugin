@@ -177,7 +177,7 @@ void ATMDialog::computeSegmentation()
 	}
 
 	//compute displacement
-	//computeThrowMeasurement();
+	computeThrowMeasurement();
 	m_app->redrawAll();
 
 	//release memory
@@ -330,6 +330,51 @@ void ATMDialog::computeThrowMeasurement()
 			LinearRegression* lr = new LinearRegression(xVal, yVal);
 			listLR.push_back(lr);
 		}
+
+		/*int idx = 0;
+		for (; idx < currentProfile.size(); idx++)
+		{
+			std::vector<double> xVal, yVal;
+			//qDebug() << "current segment size" << currentProfile[idx]->getSize();
+			//qDebug() << "start, end" << currentProfile[idx]->getStartIndex() <<
+				//currentProfile[idx]->getEndIndex();
+
+			if (currentProfile[idx]->getSize() < 3)
+			{
+				int size = 0;
+
+				for (int k = 0; k < currentProfile[idx]->getSize() - 1 + s_jumps; k++) //-1 if start = end
+				{
+					if (size < 3)
+					{
+						xVal.push_back(static_cast<double> (currentProfile[idx]->getPoint(k)->x()));
+						yVal.push_back(static_cast<double> (currentProfile[idx]->getPoint(k)->y()));
+						size += currentProfile[idx]->getSize();
+						idx++;
+					}
+					else break;
+				}
+
+				qDebug() << "xVal size" << xVal.size();
+				LinearRegression* lr = new LinearRegression(xVal, yVal);
+				listLR.push_back(lr);
+			}
+
+			else
+			{
+				for (int k = 0; k < currentProfile[idx]->getSize() - 1 + s_jumps; k++) //-1 if start = end
+				{
+					xVal.push_back(static_cast<double> (currentProfile[idx]->getPoint(k)->x()));
+					yVal.push_back(static_cast<double> (currentProfile[idx]->getPoint(k)->y()));
+				}
+
+				qDebug() << "xVal size" << xVal.size();
+				LinearRegression* lr = new LinearRegression(xVal, yVal);
+				listLR.push_back(lr);
+			}
+
+		}
+		*/
 		// compute HAC
 		std::vector<std::vector<double>> matrix(matrixDistance(listLR));
 
