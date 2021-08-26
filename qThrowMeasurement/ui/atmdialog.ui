@@ -13,7 +13,7 @@
   <property name="windowTitle">
    <string>Automatic Throw Measurement Settings</string>
   </property>
-  <layout class="QGridLayout" name="gridLayout_3">
+  <layout class="QGridLayout" name="gridLayout_4">
    <item row="0" column="0">
     <layout class="QVBoxLayout" name="verticalLayout">
      <item>
@@ -78,7 +78,7 @@
           <item>
            <widget class="QLabel" name="scoreLabel">
             <property name="toolTip">
-             <string>The scoring function can be based on variance or R² computation. R² performs badly with low values of slopes.</string>
+             <string>The scoring function can be based on variance or R² computation. R² performs badly with low values of slope.</string>
             </property>
             <property name="text">
              <string>Scoring function</string>
@@ -106,7 +106,7 @@
           <item>
            <widget class="QLabel" name="genLabel">
             <property name="toolTip">
-             <string>Select the polyline which has been used to extract orthogonal sections.</string>
+             <string>Select the polyline which has been used to extract orthogonal sections (alternatively known as the transect).</string>
             </property>
             <property name="text">
              <string>Select generatrix (transect)</string>
@@ -168,154 +168,77 @@
        <property name="checked">
         <bool>false</bool>
        </property>
-       <layout class="QGridLayout" name="gridLayout_4">
+       <layout class="QGridLayout" name="gridLayout_3">
         <item row="0" column="0">
-         <layout class="QHBoxLayout" name="horizontalLayout_10">
+         <layout class="QVBoxLayout" name="verticalLayout_2">
           <item>
-           <widget class="QLabel" name="genLabel_2">
-            <property name="toolTip">
-             <string>If you want to compute cumulative displacement along an arbitrary straight line (to compare different locations at the same time, for example), select this line here.</string>
-            </property>
-            <property name="text">
-             <string>Select arbitrary X axis</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QLineEdit" name="genName_2">
-            <property name="maximumSize">
-             <size>
-              <width>155</width>
-              <height>16777215</height>
-             </size>
-            </property>
-            <property name="text">
-             <string/>
-            </property>
-            <property name="readOnly">
-             <bool>true</bool>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QPushButton" name="genFromTxtBtn_2">
-            <property name="text">
-             <string>From file (.txt)</string>
-            </property>
-            <property name="checkable">
-             <bool>true</bool>
-            </property>
-            <property name="checked">
-             <bool>true</bool>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QPushButton" name="genFromDBBtn_2">
-            <property name="text">
-             <string>From DB (Polyline)</string>
-            </property>
-           </widget>
-          </item>
-         </layout>
-        </item>
-       </layout>
-      </widget>
-     </item>
-     <item>
-      <layout class="QHBoxLayout" name="horizontalLayout_7">
-       <item>
-        <spacer name="horizontalSpacer_3">
-         <property name="orientation">
-          <enum>Qt::Horizontal</enum>
-         </property>
-         <property name="sizeHint" stdset="0">
-          <size>
-           <width>40</width>
-           <height>20</height>
-          </size>
-         </property>
-        </spacer>
-       </item>
-       <item>
-        <widget class="QPushButton" name="computeMain">
-         <property name="text">
-          <string>Compute fault displacement</string>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <spacer name="horizontalSpacer_4">
-         <property name="orientation">
-          <enum>Qt::Horizontal</enum>
-         </property>
-         <property name="sizeHint" stdset="0">
-          <size>
-           <width>40</width>
-           <height>20</height>
-          </size>
-         </property>
-        </spacer>
-       </item>
-      </layout>
-     </item>
-     <item>
-      <widget class="QGroupBox" name="groupBox_2">
-       <property name="title">
-        <string>Cumulative fault displacement</string>
-       </property>
-       <layout class="QGridLayout" name="gridLayout_2">
-        <item row="1" column="1">
-         <layout class="QHBoxLayout" name="horizontalLayout_6">
-          <item>
-           <spacer name="horizontalSpacer_2">
-            <property name="orientation">
-             <enum>Qt::Horizontal</enum>
-            </property>
-            <property name="sizeHint" stdset="0">
-             <size>
-              <width>40</width>
-              <height>20</height>
-             </size>
-            </property>
-           </spacer>
-          </item>
-          <item>
-           <widget class="QPushButton" name="displayProfilesBtn">
-            <property name="text">
-             <string>Display individual profiles</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <layout class="QHBoxLayout" name="horizontalLayout_5">
+           <layout class="QHBoxLayout" name="horizontalLayout_10">
             <item>
-             <widget class="QLabel" name="saveAsLabel">
+             <widget class="QLabel" name="genLabel_2">
+              <property name="toolTip">
+               <string>If you want to compute cumulative displacement along an arbitrary straight line (to compare different locations at the same time, for example), select this line here.</string>
+              </property>
               <property name="text">
-               <string>Save as:</string>
+               <string>Select arbitrary X axis</string>
               </property>
              </widget>
             </item>
             <item>
-             <widget class="QPushButton" name="saveAsImgBtn">
+             <widget class="QLineEdit" name="genName_2">
+              <property name="maximumSize">
+               <size>
+                <width>155</width>
+                <height>16777215</height>
+               </size>
+              </property>
               <property name="text">
-               <string>Image (.png)</string>
+               <string/>
+              </property>
+              <property name="readOnly">
+               <bool>true</bool>
               </property>
              </widget>
             </item>
             <item>
-             <widget class="QPushButton" name="saveAsTxtBtn">
+             <widget class="QPushButton" name="genFromTxtBtn_2">
               <property name="text">
-               <string>Dataset (.txt)</string>
+               <string>From file (.txt)</string>
+              </property>
+              <property name="checkable">
+               <bool>true</bool>
+              </property>
+              <property name="checked">
+               <bool>true</bool>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="genFromDBBtn_2">
+              <property name="text">
+               <string>From DB (Polyline)</string>
               </property>
              </widget>
             </item>
            </layout>
           </item>
+          <item>
+           <layout class="QHBoxLayout" name="horizontalLayout_4">
+            <item>
+             <widget class="QLabel" name="alphaLabel">
+              <property name="toolTip">
+               <string>If known, you can input the average dip angle (obtained from the entire scarp) here. Used to compute throw measurement using Puliti at al (2020)'s method.</string>
+              </property>
+              <property name="text">
+               <string>Dip angle alpha (in degrees)</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QDoubleSpinBox" name="alphaDoubleSpinBox"/>
+            </item>
+           </layout>
+          </item>
          </layout>
-        </item>
-        <item row="0" column="1">
-         <layout class="QGridLayout" name="baseLayout"/>
         </item>
        </layout>
       </widget>
@@ -323,7 +246,111 @@
     </layout>
    </item>
    <item row="1" column="0">
-    <layout class="QHBoxLayout" name="horizontalLayout_4">
+    <layout class="QHBoxLayout" name="horizontalLayout_7">
+     <item>
+      <spacer name="horizontalSpacer_3">
+       <property name="orientation">
+        <enum>Qt::Horizontal</enum>
+       </property>
+       <property name="sizeHint" stdset="0">
+        <size>
+         <width>40</width>
+         <height>20</height>
+        </size>
+       </property>
+      </spacer>
+     </item>
+     <item>
+      <widget class="QPushButton" name="computeMain">
+       <property name="toolTip">
+        <string>Computes a piecewise linear regression followed by a hierarchical clustering (using FracDense plug-in) in order to return the fault displacement computed from selected profiles.</string>
+       </property>
+       <property name="text">
+        <string>Compute fault displacement</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <spacer name="horizontalSpacer_4">
+       <property name="orientation">
+        <enum>Qt::Horizontal</enum>
+       </property>
+       <property name="sizeHint" stdset="0">
+        <size>
+         <width>40</width>
+         <height>20</height>
+        </size>
+       </property>
+      </spacer>
+     </item>
+    </layout>
+   </item>
+   <item row="2" column="0">
+    <widget class="QGroupBox" name="groupBox_2">
+     <property name="title">
+      <string>Fault displacement data</string>
+     </property>
+     <layout class="QGridLayout" name="gridLayout_2">
+      <item row="1" column="1">
+       <layout class="QHBoxLayout" name="horizontalLayout_6">
+        <item>
+         <spacer name="horizontalSpacer_2">
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>40</width>
+            <height>20</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+        <item>
+         <widget class="QPushButton" name="displayProfilesBtn">
+          <property name="toolTip">
+           <string>Display profiles one by one, with corresponding segmentation and clustering data.</string>
+          </property>
+          <property name="text">
+           <string>Display individual profiles</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <layout class="QHBoxLayout" name="horizontalLayout_5">
+          <item>
+           <widget class="QLabel" name="saveAsLabel">
+            <property name="text">
+             <string>Save as:</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="saveAsImgBtn">
+            <property name="text">
+             <string>Image (.png)</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="saveAsTxtBtn">
+            <property name="text">
+             <string>Dataset (.txt)</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </item>
+       </layout>
+      </item>
+      <item row="0" column="1">
+       <layout class="QGridLayout" name="baseLayout"/>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item row="3" column="0">
+    <layout class="QHBoxLayout" name="horizontalLayout_8">
      <item>
       <spacer name="horizontalSpacer">
        <property name="orientation">

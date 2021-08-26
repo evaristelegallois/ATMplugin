@@ -44,7 +44,7 @@ ATMDisplayProfilesDlg::ATMDisplayProfilesDlg(std::vector<std::vector<SegmentLine
 	for (size_t i = 0; i < m_entities.size(); ++i)
 	{
 		//add one line per entity
-		items << QString("Profile #%1 (ID=%2)").arg(i).arg(m_entities[i][0]->getUniqueSharedID());
+		items << QString("Profile #ID=%1 (p=%2)").arg(m_entities[i][0]->getUniqueSharedID()).arg(m_entities[i][0]->getAssociatedP());
 	}
 	this->setItems(items, 0);
 
@@ -63,10 +63,9 @@ ATMDisplayProfilesDlg::ATMDisplayProfilesDlg(std::vector<std::vector<SegmentLine
 QChart* ATMDisplayProfilesDlg::createLineChart(float* x, float* y, int n) const
 {
 	QChart* chart = new QChart();
-	chart->setTitle(QString("Scarp height (in m) relative to curvilinear abscissa (Profile ID#%1)")
-		.arg(m_entities[getSelectedIndex()][0]->getUniqueSharedID()));
+	chart->setTitle(QString("Scarp height (in m) relative to curvilinear abscissa (Profile ID#%1, segmentation parameter p=%2)")
+		.arg(m_entities[getSelectedIndex()][0]->getUniqueSharedID()).arg(m_entities[getSelectedIndex()][0]->getAssociatedP()));
 	QLineSeries* series = new QLineSeries(chart);
-	//QString name("ID #");
 
 	QScatterSeries* clusterPos = new QScatterSeries(chart);
 	clusterPos->setMarkerShape(QScatterSeries::MarkerShapeCircle);
@@ -75,7 +74,8 @@ QChart* ATMDisplayProfilesDlg::createLineChart(float* x, float* y, int n) const
 	clusterPos->setMarkerSize(5.0);
 
 	std::vector<QLineSeries*> segmentPos;
-	for (int i = 0; i < m_sStartIdx[getSelectedIndex()].size(); i++)
+	//for (int i = 0; i < m_sStartIdx[getSelectedIndex()].size(); i++)
+	for (int i = 0; i < m_entities[getSelectedIndex()].size(); i++)
 	{
 		QLineSeries* serie = new QLineSeries(chart);
 		segmentPos.push_back(serie);
@@ -106,13 +106,20 @@ QChart* ATMDisplayProfilesDlg::createLineChart(float* x, float* y, int n) const
 		{
 			for (int k = m_startIdx[getSelectedIndex()][j]; k <= m_endIdx[getSelectedIndex()][j]; k++)
 				clusterPos->append(x[k], y[k]);
-			chart->addSeries(clusterPos);
 		}
+		chart->addSeries(clusterPos);
 	}
 	else {
-		for (int j = 0; j < m_sStartIdx[getSelectedIndex()].size(); j++)
+		/*for (int j = 0; j < m_sStartIdx[getSelectedIndex()].size(); j++)
 		{
 			for (int k = m_sStartIdx[getSelectedIndex()][j]; k <= m_sEndIdx[getSelectedIndex()][j]; k++)
+				segmentPos[j]->append(x[k], y[k]);
+			chart->addSeries(segmentPos[j]);
+		}*/
+
+		for (int j = 0; j < m_entities[getSelectedIndex()].size(); j++)
+		{
+			for (int k = m_entities[getSelectedIndex()][j]->getStartIndex(); k <= m_entities[getSelectedIndex()][j]->getEndIndex(); k++)
 				segmentPos[j]->append(x[k], y[k]);
 			chart->addSeries(segmentPos[j]);
 		}
@@ -136,7 +143,7 @@ QChart* ATMDisplayProfilesDlg::createLineChart(float* x, float* y, int n) const
 		clusterPos->attachAxis(axisY);
 	}
 	else {
-		for (int j = 0; j < m_sStartIdx[getSelectedIndex()].size(); j++)
+		for (int j = 0; j < m_entities[getSelectedIndex()].size(); j++)
 		{
 			segmentPos[j]->attachAxis(axisX);
 			segmentPos[j]->attachAxis(axisY);
@@ -251,6 +258,7 @@ void ATMDisplayProfilesDlg::exportDataAsTxt()
 			}
 		//when done
 		file.close();
+		ccLog::Print(QString("[qATM] File '%1' successfully saved.").arg(path));
 	}
 
 	//segmentation related data
@@ -282,6 +290,7 @@ void ATMDisplayProfilesDlg::exportDataAsTxt()
 			}
 		//when done
 		file2.close();
+		ccLog::Print(QString("[qATM] File '%1' successfully saved.").arg(path2));
 	}
 }
 
@@ -293,7 +302,7 @@ void ATMDisplayProfilesDlg::exportAllDataAsTxt()
 		//open file saving dialog
 		QString path = dir + QString("/profile#%1_coordinates.txt").arg(l);
 
-		int size = 0;
+		int size = 0; //profile size (nb of points)
 		for (int k = 0; k < m_entities[l].size(); k++) size += m_entities[l][k]->getSize();
 		//coordinates
 		QFile file(path);
@@ -314,6 +323,7 @@ void ATMDisplayProfilesDlg::exportAllDataAsTxt()
 
 			//when done
 			file.close();
+			ccLog::Print(QString("[qATM] File '%1' successfully saved.").arg(path));
 		}
 
 		//segmentation related data
@@ -340,6 +350,34 @@ void ATMDisplayProfilesDlg::exportAllDataAsTxt()
 				}
 			//when done
 			file2.close();
+			ccLog::Print(QString("[qATM] File '%1' successfully saved.").arg(path2));
+		}
+
+		//clustering related data
+		QString path3 = dir + QString("/profile#%1_clusteringData.txt").arg(l);
+
+		QFile file3(path3);
+		if (file3.open(QIODevice::ReadWrite)) {
+			QTextStream stream(&file3);
+
+			//header
+			stream << "profile #ID " << m_entities[l][0]->getUniqueSharedID() << "\n"
+				<< "nb of points " << (size - m_entities[l].size()) << "\n"
+				<< "nb of clusters " << m_startIdx.size() << "\n";
+
+			stream << "start" << "\t" << "end" << "\t" << "intercept" << "\t" << "slope"
+				<< "\t" << "r2" << "\t" << "var" << "\n";
+
+			for (int j = 0; j < m_startIdx[l].size(); j++)
+			{
+				stream << m_startIdx[l][j] << "\t"
+					<< m_endIdx[l][j] << "\t" << m_entities[l][j]->getIntercept()
+					<< "\t" << m_entities[l][j]->getSlope() << "\t"
+					<< m_entities[l][j]->getRSquare() << "\t" << m_entities[l][j]->getVar() << "\n";
+			}
+			//when done
+			file3.close();
+			ccLog::Print(QString("[qATM] File '%1' successfully saved.").arg(path3));
 		}
 	}
 }
@@ -358,11 +396,9 @@ void ATMDisplayProfilesDlg::exportDataAsImg()
 	p.end();
 	img->save(outputFilename);
 
-	/*if (img->save(outputFilename))
-		m_app->dispToConsole(QString("[qATM] Image '%1' successfully saved.").arg(outputFilename),
-			ccMainAppInterface::STD_CONSOLE_MESSAGE);
-	else m_app->dispToConsole(QString("[qATM] Failed to save image '%1'!").arg(outputFilename),
-		ccMainAppInterface::WRN_CONSOLE_MESSAGE);*/
+	if (img->save(outputFilename))
+		ccLog::Print(QString("[qATM] Image '%1' successfully saved.").arg(outputFilename));
+	else ccLog::Print(QString("[qATM] Failed to save image '%1'!").arg(outputFilename));
 
 }
 
@@ -388,6 +424,8 @@ void ATMDisplayProfilesDlg::exportAllDataAsImg()
 		p.end();
 		img->save(outputFilename);
 
-
+		if (img->save(outputFilename))
+			ccLog::Print(QString("[qATM] Image '%1' successfully saved.").arg(outputFilename));
+		else ccLog::Print(QString("[qATM] Failed to save image '%1'!").arg(outputFilename));
 	}
 }

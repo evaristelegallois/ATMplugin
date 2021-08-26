@@ -202,7 +202,6 @@ std::vector<int> dPPiecewiseLinearRegression::profile_segmentation()
         val_y.push_back(m_y[i]);
     }
 
-
     std::vector<std::vector<double>> S;
     std::vector<double> S0;
     S0.push_back(-1 * m_p);

@@ -7,10 +7,6 @@
 //qCC_db
 #include <ccHObject.h>
 
-/*namespace Ui {
-class qATMSelectEntitiesDlg;
-}*/
-
 class qATMSelectEntitiesDlg : public QDialog, public Ui::qATMSelectEntitiesDlg
 {
     Q_OBJECT
@@ -37,9 +33,6 @@ public:
 	//! Returns selected index (unique selection mode)
 	int getSelectedIndex() const;
 
-
-private:
-    //Ui::qATMSelectEntitiesDlg *ui;
 };
 
 #endif // QATMSELECTENTITIESDLG_H

@@ -44,9 +44,6 @@ ATMDialog::ATMDialog(ccMainAppInterface* app, std::vector<ccPolyline*> profiles)
     m_profiles(profiles)
 {
     setupUi(this);
-
-	//connect(step, static_cast<void (QDoubleSpinBox::*)(double)> (&QDoubleSpinBox::valueChanged), 
-	//this, &ATMDialog::onStepChanged);
     
     connect(computeMain, &QPushButton::released, this, &ATMDialog::computeSegmentation);
     connect(displayProfilesBtn, &QPushButton::released, this, &ATMDialog::displayProfilesDlg);
@@ -60,24 +57,22 @@ ATMDialog::ATMDialog(ccMainAppInterface* app, std::vector<ccPolyline*> profiles)
 }
 
 //LINE CHART FOR CUMULATIVE DISPLACEMENT
-//add save as below
 QChart* ATMDialog::createLineChart(float* data, int* id, int n) const
 {
     QChart* chart = new QChart();
     chart->setTitle("Cumulative displacement relative to position on transect");
+
     QLineSeries* series = new QLineSeries(chart);
 	QScatterSeries* points = new QScatterSeries(chart);
 	points->setMarkerShape(QScatterSeries::MarkerShapeCircle);
 	points->setColor(QColor(0, 255, 0));
 	points->setBorderColor(QColor(0, 255, 0));
 	points->setMarkerSize(5.0);
-    //QString name("ID #");
 
-    //QValueAxis* axisX = new QValueAxis;
 	QCategoryAxis* axisX = new QCategoryAxis;
     QValueAxis* axisY = new QValueAxis;
     axisX->setTitleText("Position on transect (y)");
-    axisY->setTitleText("Cumulative fault displacement (m)"); //not working??
+    axisY->setTitleText("Cumulative fault displacement (m)"); 
 	axisX->setLabelsPosition(QCategoryAxis::AxisLabelsPositionOnValue);
 
 	float min = -10., max = 10.;
@@ -92,13 +87,11 @@ QChart* ATMDialog::createLineChart(float* data, int* id, int n) const
     for (int i = 0; i < n; i++)
     {
         series->append(id[i], data[i]);
-		//series->append(m_processors[i]->getProfileID(), data[i]);
 		points->append(id[i], data[i]);
 		qDebug() << "y, x" << data[i] << id[i];
-        //series->setName(name + QString::number(id[i]));
 		axisX->append("ID #" + QString::number(m_processors[i]->getProfileID()), i);
-        //axisX->append("ID #" + QString::number(m_processors[i]->getProfileID()), i+1);
     }
+
     chart->legend()->hide();
     chart->addSeries(series);
 	chart->addSeries(points);
@@ -109,14 +102,16 @@ QChart* ATMDialog::createLineChart(float* data, int* id, int n) const
 	points->attachAxis(axisX);
 	points->attachAxis(axisY);
 
-    //chart->createDefaultAxes();
     return chart;
 }
 
 void ATMDialog::computeSegmentation()
 {
+	/// parameter initialization 
+	// break-point value p, jumps = 1 if discontinuity between segments is allowed, else 0
+	// var or r² scoring function, dip angle alpha (if known), and generatrix (transect)
 	s_p = this->pDoubleSpinBox->value();
-	//if (this->alphaCheckBox->isChecked()) s_alpha = static_cast<float> (alphaDoubleSpinBox->value() * 180/M_PI); //in radian
+	s_alpha = static_cast<float> (alphaDoubleSpinBox->value() * 180/M_PI); //in radian
 	if (this->jCheckBox->isChecked()) s_jumps = 1;
 	else s_jumps = 0;
 	if (this->scoreComboBox->currentText() == "Variance of residuals") s_type = "var";
@@ -131,6 +126,7 @@ void ATMDialog::computeSegmentation()
 	}
 	qDebug() << "p" << s_p;
 
+	//allocate memory for inputs/outputs
 	std::vector<QVector<QVector2D*>> inputs;
 	inputs.reserve(m_profiles.size());
 	std::vector<ccPolyline*> outputs;
@@ -138,6 +134,7 @@ void ATMDialog::computeSegmentation()
 	m_processors.reserve(m_profiles.size());
 	m_segmentList.reserve(m_profiles.size());
 
+	/// segmentation
 	for (int i = 0; i < m_profiles.size(); i++)
 	{
 		m_processors.push_back(new profileProcessor(m_profiles[i], m_generatrix));
@@ -168,11 +165,11 @@ void ATMDialog::computeSegmentation()
 		qDebug() << "segmentation model OK";
 
 		outputs.push_back(m_processors[i]->segmentToProfile(m_segments)); 
-		// ISSUE HERE invalid vector subscript
-
 		m_transectPos.push_back(m_processors[i]->getTransectPos());
+
 		qDebug() << "outputs OK";
-		m_app->addToDB(outputs[i]);
+
+		m_app->addToDB(outputs[i]); //displays outputs
 	}
 
 	//compute displacement
@@ -180,12 +177,10 @@ void ATMDialog::computeSegmentation()
 	m_app->redrawAll();
 
 	//release memory
-	m_profiles.clear();
 	m_processors.clear();
-	//m_segments.clear();
-	//m_segmentList.clear();
-	inputs.clear();
-	outputs.clear();
+	m_processors.shrink_to_fit();
+	m_segments.clear();
+	m_segments.shrink_to_fit();
 }
 
 void ATMDialog::computeThrowMeasurement()
@@ -205,7 +200,6 @@ void ATMDialog::computeThrowMeasurement()
 		std::vector<SegmentLinearRegression*> currentProfile;
 		currentProfile.reserve(m_segmentList[i].size());
 		currentProfile = m_segmentList[i];
-
 	
 		/*float* xX, * yY;
 		int idx = 0;
@@ -337,10 +331,6 @@ void ATMDialog::computeThrowMeasurement()
 		int idx = 0;
 		for (; idx < currentProfile.size(); idx++)
 		{
-			//qDebug() << "current segment size" << currentProfile[idx]->getSize();
-			//qDebug() << "start, end" << currentProfile[idx]->getStartIndex() <<
-				//currentProfile[idx]->getEndIndex();
-
 			if (currentProfile[idx]->getSize() == 2)
 			{
 				int size = 0;
@@ -383,7 +373,6 @@ void ATMDialog::computeThrowMeasurement()
 		xVal.clear();
 		yVal.clear();
 		
-		
 		// compute HAC
 		std::vector<std::vector<double>> matrix(matrixDistance(listLR));
 
@@ -405,7 +394,6 @@ void ATMDialog::computeThrowMeasurement()
 		//double max = std::max(leftNode->getGap(), rightNode->getGap());
 		//double threshold = (HAC_av->getGap() + max) / 2.;
 
-		
 		//IF THREE CLUSTERS ARE NEEDED
 		TreeNode* currentNode;
 		if (leftNode->getGap() < rightNode->getGap()) currentNode = rightNode;
@@ -432,6 +420,10 @@ void ATMDialog::computeThrowMeasurement()
 			listEnd.push_back(0);
 			m_startIdx.push_back(listStart);
 			m_endIdx.push_back(listEnd);
+			m_sStartIdx.push_back(listStart);
+			m_sEndIdx.push_back(listEnd);
+
+			m_y[i] = -1;
 
 			continue;
 			//abort the process here?
@@ -462,7 +454,6 @@ void ATMDialog::computeThrowMeasurement()
 				int index = tnClusters[l][m]->getValue();
 				sgList.push_back(currentProfile[index]);
 				slope += currentProfile[index]->getSlope();
-				//segmentSlopes.push_back(currentProfile[index]->getSlope());
 			}
 
 			averageSlopes[l] = slope / sgList.size(); //average slope for each cluster
@@ -474,7 +465,7 @@ void ATMDialog::computeThrowMeasurement()
 
 			qDebug() << "cluster nb " << l << "average slope" << averageSlopes[l];
 			qDebug() << "sgList size" << sgList.size();
-			sgClusters.push_back(sgList);
+			sgClusters.push_back(sgList); //sgClusters[l] = segments clustered, averageSlopes[l] = average slope of each cluster
 		}
 
 		std::vector<int> listStart, listEnd;
@@ -509,6 +500,7 @@ void ATMDialog::computeThrowMeasurement()
 			listSEnd.push_back(endIndex);
 		}
 
+		//no need to use those bc end & start already included in segmentlinearregression
 		m_sStartIdx.push_back(listSStart);
 		m_sEndIdx.push_back(listSEnd);
 
@@ -571,16 +563,25 @@ void ATMDialog::computeThrowMeasurement()
 			m_y[i] = static_cast<float> (computeTr(x1, x2, y1, y2, a_m));
 		}
 	}
-	//compute cumulative throw along somewhat curvilinear abscissa
-	m_chart = createLineChart(m_y, x, m_profiles.size());
-	m_chartView->setChart(m_chart);
-	m_chartView->update();
+
+	if (m_profiles.size() < 2)
+	{
+		QLabel* label = new QLabel("At least two profiles need to be selected to display this graph.");
+		baseLayout->addWidget(label, 1, 2, Qt::AlignCenter);
+	}
+	else
+	{
+		//compute cumulative throw along composite curvilinear abscissa
+		m_chart = createLineChart(m_y, x, m_profiles.size());
+		m_chartView->setChart(m_chart);
+		m_chartView->update();
+	}
+
 }
 
 float ATMDialog::computeTr(float x1, float x2, float y1, float y2, float a_m)
 {
 	float throwMeasurement = 0.;
-	s_alpha = M_PI / 3; //temp, gonna be given by user; needs to be in rad
 	if (s_alpha == 0) throwMeasurement = abs(x1 - x2);
 	else
 	{
@@ -597,31 +598,10 @@ float ATMDialog::computeTr(float x1, float x2, float y1, float y2, float a_m)
 	return throwMeasurement;
 }
 
-void ATMDialog::exportDataAsTxt()
+void ATMDialog::displayProfilesDlg()
 {
-	//open file saving dialog
-	QString path = QString("displacementData_coordinates");
-	QString outputFilename = QFileDialog::getSaveFileName(this, "Select destination",
-		path, tr("Text files(*.txt)"));
-
-	if (outputFilename.isEmpty())
-		return;
-
-	//coordinates
-	QFile file(outputFilename);
-	qDebug() << outputFilename;
-	if (file.open(QIODevice::ReadWrite)) {
-		QTextStream stream(&file);
-		stream << "Tr" << "\t" << "profile #ID" << "\n";
-
-		for (int i = 0; i < m_segmentList.size(); i++)
-		{
-			stream << m_y[i] << "\t" << m_id[i] << "\n";
-		}
-
-		//when done
-		file.close();
-	}
+	ATMDisplayProfilesDlg* ATMDPDlg = new ATMDisplayProfilesDlg(m_segmentList, m_startIdx,
+		m_endIdx, m_sStartIdx, m_sEndIdx, m_transectPos);
 }
 
 void ATMDialog::importGeneratrixFromDB()
@@ -644,16 +624,70 @@ void ATMDialog::importGeneratrixFromDB()
 	{
 		ccLog::Error("No polyline in DB!");
 	}
-
-	//deal with cancellation
 }
 
-void ATMDialog::displayProfilesDlg()
+//INCOMPLETE FUNCTION
+void ATMDialog::importGeneratrixFromTxt()
 {
-	ATMDisplayProfilesDlg* ATMDPDlg = new ATMDisplayProfilesDlg(m_segmentList, m_startIdx, 
-		m_endIdx, m_sStartIdx, m_sEndIdx, m_transectPos);
+	QString name = QString("Transect");
+	ccPointCloud* outputCloud = new ccPointCloud(name.toStdString().c_str());
+	outputCloud->reserve(100000);
+
+	std::vector<QVector3D*> coordList;
+
+	//read txt file here
+	// for (int i = 0; i < size file - 2; i++) coordList.push_back(QVector3D(file[i][0], file[i][1], file[i][2]));
+
+	for (int i = 0; i < coordList.size()-2; i++)
+	{
+		outputCloud->addPoint(CCVector3(coordList[i]->x(), coordList[i]->y(), coordList[i]->z()));
+	}
+	outputCloud->shrinkToFit();
+
+	ccPolyline* outputProfile = new ccPolyline(outputCloud);
+
+	outputProfile->setForeground(true);
+	outputProfile->set2DMode(false);
+	outputProfile->reserve(outputCloud->size());
+	outputProfile->addPointIndex(0, outputCloud->size());
+	outputProfile->setWidth(5);
+	//outputProfile->addChild(outputCloud);
+
+	m_app->addToDB(outputProfile);
 }
 
+void ATMDialog::exportDataAsTxt()
+{
+	//open file saving dialog
+	QString path = QString("displacementData_coordinates");
+	QString outputFilename = QFileDialog::getSaveFileName(this, "Select destination",
+		path, tr("Text files(*.txt)"));
+
+	if (outputFilename.isEmpty())
+		return;
+
+	//coordinates
+	QFile file(outputFilename);
+	qDebug() << outputFilename;
+	if (file.open(QIODevice::ReadWrite)) {
+		QTextStream stream(&file);
+
+		//header
+		stream << "nb of profiles " << m_segmentList.size() << "\n" << "p value " << s_p << "\n"
+			<< "jump " << s_jumps << "\n" << "scoring function " << s_type << "\n";
+
+		stream << "Tr" << "\t" << "profile #ID" << "\n";
+
+		for (int i = 0; i < m_segmentList.size(); i++)
+		{
+			stream << m_y[i] << "\t" << m_id[i] << "\n";
+		}
+
+		//when done
+		file.close();
+		ccLog::Print(QString("[qATM] File '%1' successfully saved.").arg(path));
+	}
+}
 
 void ATMDialog::exportDataAsImg()
 {
@@ -669,10 +703,7 @@ void ATMDialog::exportDataAsImg()
 	p.end();
 	img->save(outputFilename);
  
-	if (img->save(outputFilename)) 
-		m_app->dispToConsole(QString("[qATM] Image '%1' successfully saved.").arg(outputFilename),
-			ccMainAppInterface::STD_CONSOLE_MESSAGE);
-    else m_app->dispToConsole(QString("[qATM] Failed to save image '%1'!").arg(outputFilename), 
-		ccMainAppInterface::WRN_CONSOLE_MESSAGE);
-
+	if (img->save(outputFilename))
+		ccLog::Print(QString("[qATM] Image '%1' successfully saved.").arg(outputFilename));
+	else ccLog::Print(QString("[qATM] Failed to save image '%1'!").arg(outputFilename));
 }

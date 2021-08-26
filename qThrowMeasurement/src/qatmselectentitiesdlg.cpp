@@ -4,18 +4,6 @@
 #include <QDialog>
 #include <QListWidgetItem>
 
-/*qATMSelectEntitiesDlg::qATMSelectEntitiesDlg(QWidget *parent) :
-    QDialog(parent),
-    ui(new Ui::qATMSelectEntitiesDlg)
-{
-    ui->setupUi(this);
-}
-
-qATMSelectEntitiesDlg::~qATMSelectEntitiesDlg()
-{
-    delete ui;
-}*/
-
 qATMSelectEntitiesDlg::qATMSelectEntitiesDlg(
 	QWidget* parent/*=0*/,
 	QString itemName/*="entities"*/,
@@ -26,7 +14,6 @@ qATMSelectEntitiesDlg::qATMSelectEntitiesDlg(
 	setupUi(this);
 
 	label->setText(tr("Please select one %1").arg(itemName));
-
 }
 
 
@@ -48,7 +35,7 @@ int qATMSelectEntitiesDlg::SelectEntity(const ccHObject::Container& entities,
 	if (!ATMSEDlg.exec())
 	{
 		//cancelled by the user
-		return -1;
+		return 0;
 	}
 
 	return ATMSEDlg.getSelectedIndex();

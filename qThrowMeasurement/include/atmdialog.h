@@ -30,6 +30,7 @@ public:
     void exportDataAsTxt();
     void exportDataAsImg();
     void importGeneratrixFromDB();
+    void importGeneratrixFromTxt();
     void displayProfilesDlg();
 
 protected:
