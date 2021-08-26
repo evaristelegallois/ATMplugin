@@ -17,12 +17,15 @@ using namespace QtCharts;
 
 ATMDisplayProfilesDlg::ATMDisplayProfilesDlg(std::vector<std::vector<SegmentLinearRegression*>> entities, 
 	std::vector<std::vector<int>> startIdx, std::vector<std::vector<int>> endIdx, 
+	std::vector<std::vector<int>> sStartIdx, std::vector<std::vector<int>> sEndIdx,
 	std::vector<int> transectPos, QWidget *parent) :
     QDialog(parent),
     Ui::ATMDisplayProfilesDlg(),
 	m_entities(entities),
 	m_startIdx(startIdx),
 	m_endIdx(endIdx),
+	m_sStartIdx(sStartIdx),
+	m_sEndIdx(sEndIdx),
 	m_transectPos(transectPos)
 {
     setupUi(this);
@@ -31,8 +34,9 @@ ATMDisplayProfilesDlg::ATMDisplayProfilesDlg(std::vector<std::vector<SegmentLine
 	connect(saveAllAsTxtBtn, &QPushButton::released, this, &ATMDisplayProfilesDlg::exportAllDataAsTxt);
 	connect(saveAsImgBtn, &QPushButton::released, this, &ATMDisplayProfilesDlg::exportDataAsImg);
 	connect(saveAllAsImgBtn, &QPushButton::released, this, &ATMDisplayProfilesDlg::exportAllDataAsImg);
-	connect(profileList, &QListWidget::currentRowChanged, this, 
-		&ATMDisplayProfilesDlg::displayChart);
+	connect(profileList, &QListWidget::currentRowChanged, this, &ATMDisplayProfilesDlg::displayChart);
+	connect(genCheckBox, &QCheckBox::stateChanged, this, &ATMDisplayProfilesDlg::displayChart);
+	connect(clusterCheckBox, &QCheckBox::stateChanged, this, &ATMDisplayProfilesDlg::displayChart);
 
 	this->setModal(false);
 
@@ -55,11 +59,12 @@ ATMDisplayProfilesDlg::ATMDisplayProfilesDlg(std::vector<std::vector<SegmentLine
 	}
 }
 
-//LINE CHART FOR SEGMENTATION RESULTS
+//LINE CHART FOR SEGMENTATION & clustering RESULTS
 QChart* ATMDisplayProfilesDlg::createLineChart(float* x, float* y, int n) const
 {
 	QChart* chart = new QChart();
-	chart->setTitle("Scarp height (in m) relative to curvilinear abscissa");
+	chart->setTitle(QString("Scarp height (in m) relative to curvilinear abscissa (Profile ID#%1)")
+		.arg(m_entities[getSelectedIndex()][0]->getUniqueSharedID()));
 	QLineSeries* series = new QLineSeries(chart);
 	//QString name("ID #");
 
@@ -68,6 +73,18 @@ QChart* ATMDisplayProfilesDlg::createLineChart(float* x, float* y, int n) const
 	clusterPos->setColor(QColor(0, 255, 0));
 	clusterPos->setBorderColor(QColor(0, 255, 0));
 	clusterPos->setMarkerSize(5.0);
+
+	std::vector<QLineSeries*> segmentPos;
+	for (int i = 0; i < m_sStartIdx[getSelectedIndex()].size(); i++)
+	{
+		QLineSeries* serie = new QLineSeries(chart);
+		segmentPos.push_back(serie);
+		QPen pen = segmentPos[i]->pen();
+		pen.setWidth(5);
+		const QColor color = QColor(rand() % 255 + 0, rand() % 255 + 0, rand() % 255 + 0);
+		pen.setColor(color);
+		segmentPos[i]->setPen(pen);
+	}
 
 	QScatterSeries* transectPos = new QScatterSeries(chart);
 	transectPos->setMarkerShape(QScatterSeries::MarkerShapeCircle);
@@ -80,30 +97,57 @@ QChart* ATMDisplayProfilesDlg::createLineChart(float* x, float* y, int n) const
 	axisY->setTitleText("Height (m)");
 
 	for (int i = 0; i < n; i++) series->append(x[i], y[i]);
-	if (m_transectPos[getSelectedIndex()] == 0) transectPos->append(-1, -1);
-	else transectPos->append(x[m_transectPos[getSelectedIndex()]], 
-		y[m_transectPos[getSelectedIndex()]]); //generatrix position
-	//qDebug() << "gen pos" << m_transectPos[getSelectedIndex()];
-	for (int j = 0; j < m_startIdx[getSelectedIndex()].size(); j++)
+	chart->legend()->hide();
+	chart->addSeries(series);
+
+	if (clusterCheckBox->isChecked())
 	{
-		for (int k = m_startIdx[getSelectedIndex()][j]; k <= m_endIdx[getSelectedIndex()][j]; k++)
-			clusterPos->append(x[k], y[k]);
+		for (int j = 0; j < m_startIdx[getSelectedIndex()].size(); j++)
+		{
+			for (int k = m_startIdx[getSelectedIndex()][j]; k <= m_endIdx[getSelectedIndex()][j]; k++)
+				clusterPos->append(x[k], y[k]);
+			chart->addSeries(clusterPos);
+		}
+	}
+	else {
+		for (int j = 0; j < m_sStartIdx[getSelectedIndex()].size(); j++)
+		{
+			for (int k = m_sStartIdx[getSelectedIndex()][j]; k <= m_sEndIdx[getSelectedIndex()][j]; k++)
+				segmentPos[j]->append(x[k], y[k]);
+			chart->addSeries(segmentPos[j]);
+		}
 	}
 
-	chart->legend()->hide();
-	//chart->legend()->setColor(QColor(rand() % 255, rand() % 255, rand() % 255));
-	chart->addSeries(series);
-	chart->addSeries(clusterPos);
-	chart->addSeries(transectPos);
+	if (genCheckBox->isChecked())
+	{
+		if (m_transectPos[getSelectedIndex()] == 0) transectPos->append(-1, -1);
+		else transectPos->append(x[m_transectPos[getSelectedIndex()]],
+			y[m_transectPos[getSelectedIndex()]]); //generatrix position
+		chart->addSeries(transectPos);
+	}
 
 	chart->addAxis(axisX, Qt::AlignBottom);
 	chart->addAxis(axisY, Qt::AlignLeft);
 	series->attachAxis(axisX);
 	series->attachAxis(axisY);
-	transectPos->attachAxis(axisX);
-	transectPos->attachAxis(axisY);
-	clusterPos->attachAxis(axisX);
-	clusterPos->attachAxis(axisY);
+	if (clusterCheckBox->isChecked())
+	{
+		clusterPos->attachAxis(axisX);
+		clusterPos->attachAxis(axisY);
+	}
+	else {
+		for (int j = 0; j < m_sStartIdx[getSelectedIndex()].size(); j++)
+		{
+			segmentPos[j]->attachAxis(axisX);
+			segmentPos[j]->attachAxis(axisY);
+		}
+	}
+	if (genCheckBox->isChecked())
+	{
+		transectPos->attachAxis(axisX);
+		transectPos->attachAxis(axisY);
+	}
+
 
 	//chart->createDefaultAxes();
 	return chart;
@@ -120,9 +164,7 @@ void ATMDisplayProfilesDlg::displayChart()
 void ATMDisplayProfilesDlg::displayProfile(int selectedIndex/*=0*/,
 	QWidget* parent/*=0*/)
 {
-	for (size_t i = 0; i < m_entities.size(); ++i) //this for loop is useless as it is
-	{
-		int currentIdx = this->getSelectedIndex();
+		int currentIdx = getSelectedIndex();
 		if (currentIdx < 0) currentIdx = 0;
 
 		int size = m_entities[currentIdx][m_entities[currentIdx].size() - 1]->getEndIndex() + 1;
@@ -147,7 +189,6 @@ void ATMDisplayProfilesDlg::displayProfile(int selectedIndex/*=0*/,
 		//m_charts << m_chartView;
 		delete[] x;
 		delete[] y;
-	}
 }
 
 int ATMDisplayProfilesDlg::getSelectedIndex() const
@@ -179,6 +220,9 @@ void ATMDisplayProfilesDlg::exportDataAsTxt()
 {
 	int idx = getSelectedIndex();
 
+	int size = 0;
+	for (int k = 0; k < m_entities[idx].size(); k++) size += m_entities[idx][k]->getSize();
+
 	//open file saving dialog
 	QString path = QString("profile#%1_coordinates").arg(idx);
 	QString outputFilename = QFileDialog::getSaveFileName(this, "Select destination", 
@@ -192,18 +236,19 @@ void ATMDisplayProfilesDlg::exportDataAsTxt()
 	qDebug() << outputFilename;
 	if (file.open(QIODevice::ReadWrite)) {
 		QTextStream stream(&file);
+
+		//header
+		stream << "profile #ID" << m_entities[idx][0]->getUniqueSharedID() << "\n" <<
+			"nb of points" << (size - m_entities[idx].size()) << "\n";
+
 		stream << "curvilinear abscissa" << "\t" << "z" << "\n";
 
-		for (int i = 0; i < m_entities.size(); i++)
-		{
-			for (int j = 0; j < m_entities[i].size(); j++)
+			for (int j = 0; j < m_entities[idx].size(); j++)
 			{
-				for (int k = 0; k < m_entities[i][j]->getSize() - 1; k++) stream << 
-					m_entities[i][j]->getPoint(k)->x() << "\t" << 
-					m_entities[i][j]->getPoint(k)->y() << "\n";
+				for (int k = 0; k < m_entities[idx][j]->getSize() - 1; k++) stream << 
+					m_entities[idx][j]->getPoint(k)->x() << "\t" << 
+					m_entities[idx][j]->getPoint(k)->y() << "\n";
 			}
-
-		}
 		//when done
 		file.close();
 	}
@@ -219,19 +264,22 @@ void ATMDisplayProfilesDlg::exportDataAsTxt()
 	QFile file2(outputFilename2);
 	if (file2.open(QIODevice::ReadWrite)) {
 		QTextStream stream(&file2);
+		
+		//header
+			stream << "profile #ID" << m_entities[idx][0]->getUniqueSharedID() << "\n" <<
+				"nb of points" << (size - m_entities[idx].size()) << "\n" <<
+				"p value" << m_entities[idx][0]->getAssociatedP() << "\n";
+
 		stream << "start" << "\t" << "end" << "\t" << "intercept"
 			<< "\t" << "slope" << "\t" << "r2" << "\t" << "var" << "\n";
 
-		for (int i = 0; i < m_entities.size(); i++)
-		{
-			for (int j = 0; j < m_entities[i].size(); j++)
+			for (int j = 0; j < m_entities[idx].size(); j++)
 			{
-				stream << m_entities[i][j]->getStartIndex() << "\t"
-					<< m_entities[i][j]->getEndIndex() << "\t" << m_entities[i][j]->getIntercept()
-					<< "\t" << m_entities[i][j]->getSlope() << "\t"
-					<< m_entities[i][j]->getRSquare() << "\t" << m_entities[i][j]->getVar() << "\n";
+				stream << m_entities[idx][j]->getStartIndex() << "\t"
+					<< m_entities[idx][j]->getEndIndex() << "\t" << m_entities[idx][j]->getIntercept()
+					<< "\t" << m_entities[idx][j]->getSlope() << "\t"
+					<< m_entities[idx][j]->getRSquare() << "\t" << m_entities[idx][j]->getVar() << "\n";
 			}
-		}
 		//when done
 		file2.close();
 	}
@@ -245,22 +293,25 @@ void ATMDisplayProfilesDlg::exportAllDataAsTxt()
 		//open file saving dialog
 		QString path = dir + QString("/profile#%1_coordinates.txt").arg(l);
 
+		int size = 0;
+		for (int k = 0; k < m_entities[l].size(); k++) size += m_entities[l][k]->getSize();
 		//coordinates
 		QFile file(path);
 		if (file.open(QIODevice::ReadWrite)) {
 			QTextStream stream(&file);
+
+			stream << "profile #ID " << m_entities[l][0]->getUniqueSharedID() << "\n"
+				<< "nb of points " << (size - m_entities[l].size()) << "\n";
+
 			stream << "curvilinear abscissa" << "\t" << "z" << "\n";
 
-			for (int i = 0; i < m_entities.size(); i++)
-			{
-				for (int j = 0; j < m_entities[i].size(); j++)
+				for (int j = 0; j < m_entities[l].size() ; j++)
 				{
-					for (int k = 0; k < m_entities[i][j]->getSize(); k++) stream << 
-						m_entities[i][j]->getPoint(k)->x()  << "\t" << 
-						m_entities[i][j]->getPoint(k)->y() << "\n";
+					for (int k = 0; k < m_entities[l][j]->getSize() - 1; k++) stream << 
+						m_entities[l][j]->getPoint(k)->x()  << "\t" << 
+						m_entities[l][j]->getPoint(k)->y() << "\n";
 				}
 
-			}
 			//when done
 			file.close();
 		}
@@ -271,19 +322,22 @@ void ATMDisplayProfilesDlg::exportAllDataAsTxt()
 		QFile file2(path2);
 		if (file2.open(QIODevice::ReadWrite)) {
 			QTextStream stream(&file2);
+
+			//header
+				stream << "profile #ID " << m_entities[l][0]->getUniqueSharedID() << "\n"
+					<< "nb of points " << (size - m_entities[l].size()) << "\n"
+					<< "p value " << m_entities[l][0]->getAssociatedP() << "\n";
+
 			stream << "start" << "\t" << "end" << "\t" << "intercept" << "\t" << "slope" 
 				<< "\t" << "r2" << "\t" << "var" << "\n";
 
-			for (int i = 0; i < m_entities.size(); i++)
-			{
-				for (int j = 0; j < m_entities[i].size(); j++)
+				for (int j = 0; j < m_entities[l].size(); j++)
 				{
-					stream << m_entities[i][j]->getStartIndex() << "\t"
-						<< m_entities[i][j]->getEndIndex() << "\t" << m_entities[i][j]->getIntercept()
-						<< "\t" << m_entities[i][j]->getSlope() << "\t"
-						<< m_entities[i][j]->getRSquare() << "\t" << m_entities[i][j]->getVar() << "\n";
+					stream << m_entities[l][j]->getStartIndex() << "\t"
+						<< m_entities[l][j]->getEndIndex() << "\t" << m_entities[l][j]->getIntercept()
+						<< "\t" << m_entities[l][j]->getSlope() << "\t"
+						<< m_entities[l][j]->getRSquare() << "\t" << m_entities[l][j]->getVar() << "\n";
 				}
-			}
 			//when done
 			file2.close();
 		}
@@ -292,8 +346,8 @@ void ATMDisplayProfilesDlg::exportAllDataAsTxt()
 
 void ATMDisplayProfilesDlg::exportDataAsImg()
 {
-	//open file saving dialog
-	QString outputFilename = QFileDialog::getSaveFileName(this, "Select destination", tr("Images (*.png *.jpg)"));
+	QString path = QString("/profile#%1_segmentationData.txt").arg(getSelectedIndex());
+	QString outputFilename = QFileDialog::getSaveFileName(this, "Select destination", path, tr("Images(*.png)"));
 
 	if (outputFilename.isEmpty())
 		return;
@@ -314,5 +368,26 @@ void ATMDisplayProfilesDlg::exportDataAsImg()
 
 void ATMDisplayProfilesDlg::exportAllDataAsImg()
 {
+	QString dir = QFileDialog::getExistingDirectory(this, tr("Select destination"));
+	for (int l = 0; l < m_entities.size(); l++)
+	{
+		profileList->setCurrentRow(l);
+		displayChart();
 
+		QString outputFilename;
+		if (clusterCheckBox->isChecked()) outputFilename = dir + QString("/profile#%1_segmentationData.png").arg(l);
+		else outputFilename = dir + QString("/profile#%1_clusteringData.png").arg(l);
+		qDebug() << "dir, path" << dir << outputFilename;
+
+		if (outputFilename.isEmpty())
+			return;
+
+		QImage* img = new QImage(m_chartView->size().width(), m_chartView->size().height(), QImage::Format_ARGB32_Premultiplied);
+		QPainter p(img);
+		m_chartView->render(&p);
+		p.end();
+		img->save(outputFilename);
+
+
+	}
 }

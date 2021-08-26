@@ -262,8 +262,8 @@ std::vector<int> dPPiecewiseLinearRegression::profile_segmentation()
         }
     }
 
-    for (int i = 0; i < nb_Smax; i++)
-        qDebug() << i << "max Sj" << max_Sj[i] << "shift" << shift[i] << "scores" << scores[i];
+    //for (int i = 0; i < nb_Smax; i++)
+        //qDebug() << i << "max Sj" << max_Sj[i] << "shift" << shift[i] << "scores" << scores[i];
 
     //. Backtracing
     int S_idx = S.size() - 1;
@@ -285,7 +285,12 @@ std::vector<int> dPPiecewiseLinearRegression::profile_segmentation()
             }
         }
         break_points.insert(break_points.begin(), imin);
-        idx = imin - 1;
+        idx = imin - m_minL; 
+
+        if (idx <= 0) {
+            idx = 0;
+            break_points.insert(break_points.begin(), 0);
+        }
     }
 
     return break_points;

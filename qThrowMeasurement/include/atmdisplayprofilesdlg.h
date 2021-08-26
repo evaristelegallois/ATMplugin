@@ -25,6 +25,7 @@ class ATMDisplayProfilesDlg : public QDialog, public Ui::ATMDisplayProfilesDlg
 public:
     explicit ATMDisplayProfilesDlg(std::vector<std::vector<SegmentLinearRegression*>> entities, 
         std::vector<std::vector<int>> startIdx, std::vector<std::vector<int>> endIdx, 
+        std::vector<std::vector<int>> sStartIdx, std::vector<std::vector<int>> sEndIdx,
         std::vector<int> transectPos, QWidget* parent = nullptr);
     void displayProfile(int selectedIndex = 0, QWidget* parent = 0);
     void displayChart();
@@ -46,7 +47,8 @@ private:
     QChart* m_chart;
     QChartView* m_chartView;
     std::vector<std::vector<SegmentLinearRegression*>> m_entities;
-    std::vector<std::vector<int>> m_startIdx, m_endIdx;
+    std::vector<std::vector<QColor*>> m_segmentColors;
+    std::vector<std::vector<int>> m_startIdx, m_endIdx, m_sStartIdx, m_sEndIdx;
     std::vector<int> m_transectPos;
 
 protected:

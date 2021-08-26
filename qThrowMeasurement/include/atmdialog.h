@@ -42,7 +42,7 @@ protected:
     std::vector<SegmentLinearRegression*> m_segments;
     std::vector <std::vector<SegmentLinearRegression*>> m_segmentList;
 
-    std::vector<std::vector<int>> m_startIdx, m_endIdx;
+    std::vector<std::vector<int>> m_startIdx, m_endIdx, m_sStartIdx, m_sEndIdx;
     std::vector<int> m_transectPos;
 
     QChart* m_chart;

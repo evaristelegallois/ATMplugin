@@ -34,6 +34,26 @@
       </widget>
      </item>
      <item>
+      <widget class="QCheckBox" name="clusterCheckBox">
+       <property name="text">
+        <string>display clustering data</string>
+       </property>
+       <property name="checked">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QCheckBox" name="genCheckBox">
+       <property name="text">
+        <string>display generatrix position</string>
+       </property>
+       <property name="checked">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+     <item>
       <spacer name="verticalSpacer">
        <property name="orientation">
         <enum>Qt::Vertical</enum>

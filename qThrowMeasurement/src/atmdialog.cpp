@@ -98,7 +98,6 @@ QChart* ATMDialog::createLineChart(float* data, int* id, int n) const
         //series->setName(name + QString::number(id[i]));
 		axisX->append("ID #" + QString::number(m_processors[i]->getProfileID()), i);
         //axisX->append("ID #" + QString::number(m_processors[i]->getProfileID()), i+1);
-		qDebug() << "id" << m_processors[i]->getProfileID();
     }
     chart->legend()->hide();
     chart->addSeries(series);
@@ -202,6 +201,7 @@ void ATMDialog::computeThrowMeasurement()
 
 	for (int i = 0; i < m_profiles.size(); i++)
 	{
+		qDebug() << "i" << i;
 		std::vector<SegmentLinearRegression*> currentProfile;
 		currentProfile.reserve(m_segmentList[i].size());
 		currentProfile = m_segmentList[i];
@@ -311,8 +311,9 @@ void ATMDialog::computeThrowMeasurement()
 
 
 		std::vector<LinearRegression*> listLR;
-
 		qDebug() << "segment list size" << currentProfile.size();
+		
+		/*
 		for (int j = 0; j < currentProfile.size(); j++)
 		{
 			std::vector<double> xVal, yVal;
@@ -330,32 +331,37 @@ void ATMDialog::computeThrowMeasurement()
 			LinearRegression* lr = new LinearRegression(xVal, yVal);
 			listLR.push_back(lr);
 		}
+		*/
 
-		/*int idx = 0;
+		std::vector<double> xVal, yVal;
+		int idx = 0;
 		for (; idx < currentProfile.size(); idx++)
 		{
-			std::vector<double> xVal, yVal;
 			//qDebug() << "current segment size" << currentProfile[idx]->getSize();
 			//qDebug() << "start, end" << currentProfile[idx]->getStartIndex() <<
 				//currentProfile[idx]->getEndIndex();
 
-			if (currentProfile[idx]->getSize() < 3)
+			if (currentProfile[idx]->getSize() == 2)
 			{
 				int size = 0;
+				xVal.push_back(static_cast<double> (currentProfile[idx]->getPoint(0)->x()));
+				yVal.push_back(static_cast<double> (currentProfile[idx]->getPoint(0)->y()));
+				size++;
+				idx++;
 
-				for (int k = 0; k < currentProfile[idx]->getSize() - 1 + s_jumps; k++) //-1 if start = end
+				while (size < 3 && idx < currentProfile.size())
 				{
-					if (size < 3)
+					for (int k = 0; k < currentProfile[idx]->getSize() - 1 + s_jumps; k++) //-1 if start = end
 					{
 						xVal.push_back(static_cast<double> (currentProfile[idx]->getPoint(k)->x()));
 						yVal.push_back(static_cast<double> (currentProfile[idx]->getPoint(k)->y()));
-						size += currentProfile[idx]->getSize();
-						idx++;
+						size++;
 					}
-					else break;
+
+					idx++;
 				}
 
-				qDebug() << "xVal size" << xVal.size();
+				//qDebug() << "xVal size" << xVal.size();
 				LinearRegression* lr = new LinearRegression(xVal, yVal);
 				listLR.push_back(lr);
 			}
@@ -368,18 +374,26 @@ void ATMDialog::computeThrowMeasurement()
 					yVal.push_back(static_cast<double> (currentProfile[idx]->getPoint(k)->y()));
 				}
 
-				qDebug() << "xVal size" << xVal.size();
+				//qDebug() << "xVal size" << xVal.size();
 				LinearRegression* lr = new LinearRegression(xVal, yVal);
 				listLR.push_back(lr);
 			}
-
+			//qDebug() << "idx" << idx;
 		}
-		*/
+		xVal.clear();
+		yVal.clear();
+		
+		
 		// compute HAC
 		std::vector<std::vector<double>> matrix(matrixDistance(listLR));
 
 		qDebug() << "listLR size" << listLR.size();
 		qDebug() << "matrix size" << matrix.size();
+
+		for (int j = 0; j < matrix.size(); j++)
+		{
+			for (int k = 0; k < matrix.size(); k++) 		qDebug() << "matrix values" << matrix[j][k];
+		}
 
 		HAC_Average av(matrix);
 		TreeNode* HAC_av = av.computeHAC(1); //root
@@ -402,6 +416,8 @@ void ATMDialog::computeThrowMeasurement()
 		double threshold = max + static_cast <float> (rand()) / 
 			(static_cast <float> (RAND_MAX / (currentNode->getGap() - max)));
 
+		//qDebug() << "threshold" << threshold;
+
 		//if (leftNode == nullptr && rightNode == nullptr) //it's a leaf
 		Clusters* cluster = new Clusters(HAC_av, threshold);
 
@@ -411,7 +427,14 @@ void ATMDialog::computeThrowMeasurement()
 		if (clusterNb == 0)
 		{
 			qDebug() << "The clustering didn't work. Try using a lower p parameter.";
-			break;
+			std::vector<int> listStart, listEnd;
+			listStart.push_back(0);
+			listEnd.push_back(0);
+			m_startIdx.push_back(listStart);
+			m_endIdx.push_back(listEnd);
+
+			continue;
+			//abort the process here?
 		}
 
 		std::vector<std::vector<TreeNode*>> tnClusters;
@@ -470,14 +493,28 @@ void ATMDialog::computeThrowMeasurement()
 
 		m_startIdx.push_back(listStart);
 		m_endIdx.push_back(listEnd);
-		qDebug() << "point list size" << m_startIdx[i].size();
+		//qDebug() << "point list size" << m_startIdx[i].size();
 		qDebug() << "start idx list size" << listStart.size();
-		//full profile is covered in green
+
+		std::vector<int> listSStart, listSEnd;
+		listSStart.reserve(currentProfile.size());
+		listSEnd.reserve(currentProfile.size());
+
+		for (int j = 0; j < currentProfile.size(); j++)
+		{
+			//qDebug() << "sgList maxL size" << sgClusters[maxL].size();
+			int startIndex = currentProfile[j]->getStartIndex();
+			int endIndex = currentProfile[j]->getEndIndex();
+			listSStart.push_back(startIndex);
+			listSEnd.push_back(endIndex);
+		}
+
+		m_sStartIdx.push_back(listSStart);
+		m_sEndIdx.push_back(listSEnd);
 
 		// x = curvilinear abs, y = height (= z), a_m = average slope
 		float x1 = 0., x2 = 0., y1 = 0., y2 = 0, a_m = 0.; 
 		std::vector<std::vector<SegmentLinearRegression*>> tempSgCluster;
-		//NEED TO MAKE THE FOLLOWING WORK FOR SEVERAL PROFILES AT ONCE
 		if (listStart.size() != 1)
 		{
 			for (int k = 0; k < listStart.size() - 1; k++)
@@ -607,19 +644,21 @@ void ATMDialog::importGeneratrixFromDB()
 	{
 		ccLog::Error("No polyline in DB!");
 	}
+
+	//deal with cancellation
 }
 
 void ATMDialog::displayProfilesDlg()
 {
 	ATMDisplayProfilesDlg* ATMDPDlg = new ATMDisplayProfilesDlg(m_segmentList, m_startIdx, 
-		m_endIdx, m_transectPos);
+		m_endIdx, m_sStartIdx, m_sEndIdx, m_transectPos);
 }
 
 
 void ATMDialog::exportDataAsImg()
 {
     //open file saving dialog
-    QString outputFilename = QFileDialog::getSaveFileName(this, "Select destination", tr("Images (*.png *.jpg)"));
+    QString outputFilename = QFileDialog::getSaveFileName(this, "Select destination", "displacementData.png", tr("Images(*.png)"));
 
     if (outputFilename.isEmpty())
         return;
