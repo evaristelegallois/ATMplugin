@@ -338,6 +338,7 @@ std::vector<SegmentLinearRegression*> dPPiecewiseLinearRegression::computeSegmen
         segment->setColor(QVector3D(rand() % 359 + 0, 1, 1));
         //nbVert += segment->getSize();
 
+        //if (segment->getSize() > 3) m_segments.push_back(segment);
         m_segments.push_back(segment);
     }
 

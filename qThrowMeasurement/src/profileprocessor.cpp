@@ -133,6 +133,10 @@ ccPolyline* profileProcessor::segmentToProfile(std::vector<SegmentLinearRegressi
 	m_outputCloud->addPoint(CCVector3(m_inputProfilePts[m_inputProfilePts.size() - 1]->x,
 		m_inputProfilePts[m_inputProfilePts.size()-1]->y, 
 		m_inputProfilePts[m_inputProfilePts.size()-1]->z));
+
+	//m_outputCloud->shrinkToFit();
+	//m_outputCloud->getScalarField(sfIdx)->reserve(m_outputCloud->size());
+
 	m_outputCloud->getScalarField(sfIdx)->addElement(
 		m_outputCloud->getPointScalarValue(m_inputProfilePts.size() - 2)); //last color
 		

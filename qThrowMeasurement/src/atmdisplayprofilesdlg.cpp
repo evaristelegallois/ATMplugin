@@ -384,7 +384,7 @@ void ATMDisplayProfilesDlg::exportAllDataAsTxt()
 
 void ATMDisplayProfilesDlg::exportDataAsImg()
 {
-	QString path = QString("/profile#%1_segmentationData.txt").arg(getSelectedIndex());
+	QString path = QString("/profile#%1_segmentationData.png").arg(getSelectedIndex());
 	QString outputFilename = QFileDialog::getSaveFileName(this, "Select destination", path, tr("Images(*.png)"));
 
 	if (outputFilename.isEmpty())
@@ -413,7 +413,6 @@ void ATMDisplayProfilesDlg::exportAllDataAsImg()
 		QString outputFilename;
 		if (clusterCheckBox->isChecked()) outputFilename = dir + QString("/profile#%1_segmentationData.png").arg(l);
 		else outputFilename = dir + QString("/profile#%1_clusteringData.png").arg(l);
-		qDebug() << "dir, path" << dir << outputFilename;
 
 		if (outputFilename.isEmpty())
 			return;

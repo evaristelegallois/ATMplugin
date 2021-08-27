@@ -11,6 +11,7 @@
 #include "TreeNode.h"
 #include "HAC_Average.h"
 #include "Clusters.h"
+#include "StatisticalTools.h"
 
 //qCC_plugins
 #include "ccMainAppInterface.h"
@@ -111,7 +112,7 @@ void ATMDialog::computeSegmentation()
 	// break-point value p, jumps = 1 if discontinuity between segments is allowed, else 0
 	// var or r² scoring function, dip angle alpha (if known), and generatrix (transect)
 	s_p = this->pDoubleSpinBox->value();
-	s_alpha = static_cast<float> (alphaDoubleSpinBox->value() * 180/M_PI); //in radian
+	s_alpha = static_cast<float> (alphaDoubleSpinBox->value() * M_PI/180); //in radian
 	if (this->jCheckBox->isChecked()) s_jumps = 1;
 	else s_jumps = 0;
 	if (this->scoreComboBox->currentText() == "Variance of residuals") s_type = "var";
@@ -199,9 +200,9 @@ void ATMDialog::computeThrowMeasurement()
 		qDebug() << "i" << i;
 		std::vector<SegmentLinearRegression*> currentProfile;
 		currentProfile.reserve(m_segmentList[i].size());
-		currentProfile = m_segmentList[i];
+		//currentProfile = m_segmentList[i];
 	
-		/*float* xX, * yY;
+		float* xX, * yY;
 		int idx = 0;
 		int idxP = m_profiles[i]->size();
 		xX = new float[m_profiles[i]->size()];
@@ -216,7 +217,7 @@ void ATMDialog::computeThrowMeasurement()
 				idx++;
 			}
 		}
-		*/
+		
 
 		//MAGNOLA
 
@@ -230,7 +231,7 @@ void ATMDialog::computeThrowMeasurement()
 		currentProfile[2]->setSlope(0.75);
 		*/
 
-		/*
+		
 		//profile 6 test 2
 		currentProfile.push_back(new SegmentLinearRegression(0, 226, xX, yY));
 		currentProfile[0]->setSlope(0.82);
@@ -238,7 +239,7 @@ void ATMDialog::computeThrowMeasurement()
 		currentProfile[1]->setSlope(0.33);
 		currentProfile.push_back(new SegmentLinearRegression(255, 288, xX, yY));
 		currentProfile[2]->setSlope(0.41);
-		*/
+		
 		
 		/*
 		//profile 3 test 2
@@ -249,6 +250,7 @@ void ATMDialog::computeThrowMeasurement()
 		currentProfile.push_back(new SegmentLinearRegression(189, 298, xX, yY));
 		currentProfile[2]->setSlope(0.86);
 		*/
+		
 		
 
 		/*
@@ -307,7 +309,7 @@ void ATMDialog::computeThrowMeasurement()
 		std::vector<LinearRegression*> listLR;
 		qDebug() << "segment list size" << currentProfile.size();
 		
-		/*
+		
 		for (int j = 0; j < currentProfile.size(); j++)
 		{
 			std::vector<double> xVal, yVal;
@@ -316,73 +318,44 @@ void ATMDialog::computeThrowMeasurement()
 			qDebug() << "start, end" << currentProfile[j]->getStartIndex() << 
 				currentProfile[j]->getEndIndex();
 
-			for (int k = 0; k < currentProfile[j]->getSize()-1 + s_jumps; k++) //-1 if start = end
+			if (currentProfile[j]->getSize() > 2)
 			{
-				xVal.push_back(static_cast<double> (currentProfile[j]->getPoint(k)->x()));
-				yVal.push_back(static_cast<double> (currentProfile[j]->getPoint(k)->y()));
-			}
+				xVal.push_back(static_cast<double> (currentProfile[j]->getPoint(0)->x()));
+				yVal.push_back(static_cast<double> (currentProfile[j]->getPoint(0)->y()));
 
-			LinearRegression* lr = new LinearRegression(xVal, yVal);
-			listLR.push_back(lr);
-		}
-		*/
-
-		std::vector<double> xVal, yVal;
-		int idx = 0;
-		for (; idx < currentProfile.size(); idx++)
-		{
-			if (currentProfile[idx]->getSize() == 2)
-			{
-				int size = 0;
-				xVal.push_back(static_cast<double> (currentProfile[idx]->getPoint(0)->x()));
-				yVal.push_back(static_cast<double> (currentProfile[idx]->getPoint(0)->y()));
-				size++;
-				idx++;
-
-				while (size < 3 && idx < currentProfile.size())
+				for (int k = 1; k < currentProfile[j]->getSize() + s_jumps; k++) //-1 if start = end
 				{
-					for (int k = 0; k < currentProfile[idx]->getSize() - 1 + s_jumps; k++) //-1 if start = end
+					if (currentProfile[j]->getPoint(k)->x() != currentProfile[j]->getPoint(k - 1)->x())
 					{
-						xVal.push_back(static_cast<double> (currentProfile[idx]->getPoint(k)->x()));
-						yVal.push_back(static_cast<double> (currentProfile[idx]->getPoint(k)->y()));
-						size++;
+						xVal.push_back(static_cast<double> (currentProfile[j]->getPoint(k)->x()));
+						yVal.push_back(static_cast<double> (currentProfile[j]->getPoint(k)->y()));
 					}
-
-					idx++;
 				}
 
-				//qDebug() << "xVal size" << xVal.size();
 				LinearRegression* lr = new LinearRegression(xVal, yVal);
 				listLR.push_back(lr);
 			}
-
-			else
-			{
-				for (int k = 0; k < currentProfile[idx]->getSize() - 1 + s_jumps; k++) //-1 if start = end
-				{
-					xVal.push_back(static_cast<double> (currentProfile[idx]->getPoint(k)->x()));
-					yVal.push_back(static_cast<double> (currentProfile[idx]->getPoint(k)->y()));
-				}
-
-				//qDebug() << "xVal size" << xVal.size();
-				LinearRegression* lr = new LinearRegression(xVal, yVal);
-				listLR.push_back(lr);
-			}
-			//qDebug() << "idx" << idx;
 		}
-		xVal.clear();
-		yVal.clear();
+		
 		
 		// compute HAC
 		std::vector<std::vector<double>> matrix(matrixDistance(listLR));
 
+		/*for (int l = 1; l < listLR.size(); l++)
+		{
+			qDebug() << "t values @ i - 1 & i" << l - 1 << l << distance_comparison_slope(*listLR[l - 1], *listLR[l]);
+			qDebug() << "n_i-1, n_i" << listLR[l - 1]->getValues_x().size() << listLR[l]->getValues_x().size();
+		}
+		*/
+
 		qDebug() << "listLR size" << listLR.size();
 		qDebug() << "matrix size" << matrix.size();
 
-		for (int j = 0; j < matrix.size(); j++)
+		/*for (int j = 0; j < matrix.size(); j++)
 		{
 			for (int k = 0; k < matrix.size(); k++) 		qDebug() << "matrix values" << matrix[j][k];
 		}
+		*/
 
 		HAC_Average av(matrix);
 		TreeNode* HAC_av = av.computeHAC(1); //root
@@ -390,28 +363,36 @@ void ATMDialog::computeThrowMeasurement()
 		TreeNode* leftNode = HAC_av->getNodeLeft();
 		TreeNode* rightNode = HAC_av->getNodeRight();
 
-		//IF TWO CLUSTERS ARE NEEDED
-		//double max = std::max(leftNode->getGap(), rightNode->getGap());
-		//double threshold = (HAC_av->getGap() + max) / 2.;
+		int clusterNb = 0;
+		Clusters* cluster;
+		if (leftNode != nullptr && rightNode != nullptr) //if it's not a leaf
+		{
+			double max, threshold;
+			if (listLR.size() < 3)
+			{
+				//if less than three segments, we go for two clusters
+				max = std::max(leftNode->getGap(), rightNode->getGap());
+				threshold = (HAC_av->getGap() + max) / 2.;
+			}
+			else {
+				//if 3 clusters or more, we go for three clusters
+				TreeNode* currentNode;
+				if (leftNode->getGap() < rightNode->getGap()) currentNode = rightNode;
+				else currentNode = leftNode;
+				TreeNode* nextRNode = currentNode->getNodeRight();
+				TreeNode* nextLNode = currentNode->getNodeLeft();
+				max = std::max(nextRNode->getGap(), nextLNode->getGap());
+				threshold = max + static_cast <float> (rand()) /
+					(static_cast <float> (RAND_MAX / (currentNode->getGap() - max)));
+			}
 
-		//IF THREE CLUSTERS ARE NEEDED
-		TreeNode* currentNode;
-		if (leftNode->getGap() < rightNode->getGap()) currentNode = rightNode;
-		else currentNode = leftNode;
-		TreeNode* nextRNode = currentNode->getNodeRight();
-		TreeNode* nextLNode = currentNode->getNodeLeft();
-		double max = std::max(nextRNode->getGap(), nextLNode->getGap());
-		double threshold = max + static_cast <float> (rand()) / 
-			(static_cast <float> (RAND_MAX / (currentNode->getGap() - max)));
-
-		//qDebug() << "threshold" << threshold;
-
-		//if (leftNode == nullptr && rightNode == nullptr) //it's a leaf
-		Clusters* cluster = new Clusters(HAC_av, threshold);
+			cluster = new Clusters(HAC_av, threshold);
+			clusterNb = cluster->get_number_clusters();
+		}
 
 		qDebug() << "clustering ok";
 
-		int clusterNb = cluster->get_number_clusters();
+		//if there's only 1 segment (leaf), or the clustering didn't work
 		if (clusterNb == 0)
 		{
 			qDebug() << "The clustering didn't work. Try using a lower p parameter.";
@@ -423,15 +404,14 @@ void ATMDialog::computeThrowMeasurement()
 			m_sStartIdx.push_back(listStart);
 			m_sEndIdx.push_back(listEnd);
 
-			m_y[i] = -1;
+			m_y[i] = -1; //arbitrary value; zero might be better?
 
 			continue;
-			//abort the process here?
 		}
 
-		std::vector<std::vector<TreeNode*>> tnClusters;
+		std::vector<std::vector<TreeNode*>> tnClusters; //tree node clusters
 		tnClusters.reserve(clusterNb);
-		std::vector<std::vector<SegmentLinearRegression*>> sgClusters;
+		std::vector<std::vector<SegmentLinearRegression*>> sgClusters; //segment clusters
 		sgClusters.reserve(clusterNb);
 
 		float* averageSlopes = new float[clusterNb];
@@ -532,6 +512,14 @@ void ATMDialog::computeThrowMeasurement()
 			}
 		}
 
+		float value = 0;
+		for (int l = 0; l < clusterNb; l++)
+		{
+			if (l != maxL)
+			{
+				value += averageSlopes[l];
+			}
+		}
 		qDebug() << "segment slopes list size" << segmentSlopes.size();
 		qDebug() << "temp cluster list size" << tempSgCluster.size();
 		if (segmentSlopes.size() != 0)
@@ -548,7 +536,8 @@ void ATMDialog::computeThrowMeasurement()
 					x2 = tempSgCluster[j][tempSgCluster[j].size() - 1]->getEnd().x();
 				}
 			}
-			a_m = maxSl;
+			//a_m = maxSl;
+			a_m = value / (clusterNb - 1);
 			//gets throw measurement value (Tr)
 			m_y[i] = static_cast<float> (computeTr(x1, x2, y1, y2, a_m));
 		}
@@ -558,10 +547,12 @@ void ATMDialog::computeThrowMeasurement()
 			y2 = sgClusters[maxL][0]->getEnd().y();
 			x1 = sgClusters[maxL][0]->getStart().x();
 			x2 = sgClusters[maxL][0]->getEnd().x();
-			a_m = maxSlope;
+			//a_m = maxSlope;
+			a_m = value / (clusterNb - 1);
 			//gets throw measurement value (Tr)
 			m_y[i] = static_cast<float> (computeTr(x1, x2, y1, y2, a_m));
 		}
+		qDebug() << "a_m" << a_m;
 	}
 
 	if (m_profiles.size() < 2)
@@ -588,6 +579,7 @@ float ATMDialog::computeTr(float x1, float x2, float y1, float y2, float a_m)
 		float beta = atan(a_m);
 		float b1 = y1 - a_m * x1;
 		float b2 = y2 - a_m * x2;
+		qDebug() << "alpha, b1, b2" << s_alpha << b1 << b2;
 		float deltaB = abs(b1 - b2);
 		qDebug() << "deltaB" << deltaB;
 		//equation taken from Puliti et al, 2020
