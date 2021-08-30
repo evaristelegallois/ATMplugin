@@ -1,3 +1,20 @@
+//##########################################################################
+//#                                                                        #
+//#                    CLOUDCOMPARE PLUGIN: ATMPlugin                      #
+//#                                                                        #
+//#  This program is free software; you can redistribute it and/or modify  #
+//#  it under the terms of the GNU General Public License as published by  #
+//#  the Free Software Foundation; version 2 of the License.               #
+//#                                                                        #
+//#  This program is distributed in the hope that it will be useful,       #
+//#  but WITHOUT ANY WARRANTY; without even the implied warranty of        #
+//#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         #
+//#  GNU General Public License for more details.                          #
+//#                                                                        #
+//#                      COPYRIGHT: Gabriel Parel                          #
+//#                                                                        #
+//##########################################################################
+
 #include "atmdisplayprofilesdlg.h"
 #include "ui_atmdisplayprofilesdlg.h"
 
@@ -16,17 +33,12 @@
 using namespace QtCharts;
 
 ATMDisplayProfilesDlg::ATMDisplayProfilesDlg(std::vector<std::vector<SegmentLinearRegression*>> entities, 
-	std::vector<std::vector<int>> startIdx, std::vector<std::vector<int>> endIdx, 
-	std::vector<std::vector<int>> sStartIdx, std::vector<std::vector<int>> sEndIdx,
-	std::vector<int> transectPos, QWidget *parent) :
+	std::vector<std::vector<int>> startIdx, std::vector<std::vector<int>> endIdx, QWidget *parent) :
     QDialog(parent),
     Ui::ATMDisplayProfilesDlg(),
 	m_entities(entities),
 	m_startIdx(startIdx),
-	m_endIdx(endIdx),
-	m_sStartIdx(sStartIdx),
-	m_sEndIdx(sEndIdx),
-	m_transectPos(transectPos)
+	m_endIdx(endIdx)
 {
     setupUi(this);
 
@@ -127,9 +139,9 @@ QChart* ATMDisplayProfilesDlg::createLineChart(float* x, float* y, int n) const
 
 	if (genCheckBox->isChecked())
 	{
-		if (m_transectPos[getSelectedIndex()] == 0) transectPos->append(-1, -1);
-		else transectPos->append(x[m_transectPos[getSelectedIndex()]],
-			y[m_transectPos[getSelectedIndex()]]); //generatrix position
+		if (m_entities[getSelectedIndex()][0]->getTransectPosition() == 0) transectPos->append(-1, -1);
+		else transectPos->append(x[m_entities[getSelectedIndex()][0]->getTransectPosition()],
+			y[m_entities[getSelectedIndex()][0]->getTransectPosition()]); //generatrix position
 		chart->addSeries(transectPos);
 	}
 

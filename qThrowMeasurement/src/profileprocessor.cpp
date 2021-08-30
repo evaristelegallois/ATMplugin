@@ -1,8 +1,28 @@
+//##########################################################################
+//#                                                                        #
+//#                    CLOUDCOMPARE PLUGIN: ATMPlugin                      #
+//#                                                                        #
+//#  This program is free software; you can redistribute it and/or modify  #
+//#  it under the terms of the GNU General Public License as published by  #
+//#  the Free Software Foundation; version 2 of the License.               #
+//#                                                                        #
+//#  This program is distributed in the hope that it will be useful,       #
+//#  but WITHOUT ANY WARRANTY; without even the implied warranty of        #
+//#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         #
+//#  GNU General Public License for more details.                          #
+//#                                                                        #
+//#                      COPYRIGHT: Gabriel Parel                          #
+//#                                                                        #
+//##########################################################################
+
 #include "profileprocessor.h"
 #include <QDebug>
 
 profileProcessor::profileProcessor(ccPolyline* profile, ccPolyline* generatrix) :
-	m_inputProfile(profile), m_inputGeneratrix(generatrix)
+	m_inputProfile(profile), m_inputGeneratrix(generatrix), 
+	m_outputX(nullptr), m_outputY(nullptr), m_outputZ(nullptr),
+	m_inputSegment(nullptr), m_outputCloud(nullptr), m_outputProfile(nullptr),
+	m_genPtIdx(-1)
 {
 	const int n = profile->size();
 	m_inputX = new float[n];
@@ -13,22 +33,25 @@ profileProcessor::profileProcessor(ccPolyline* profile, ccPolyline* generatrix) 
 
 profileProcessor::~profileProcessor()
 {
+	delete[] m_inputGeneratrix;
 	delete[] m_inputProfile;
 	delete[] m_outputProfile;
 	delete[] m_inputSegment;
+	delete[] m_outputCloud;
 	delete[] m_inputX;
 	delete[] m_inputY;
+	delete[] m_outputX;
+	delete[] m_outputY;
+	delete[] m_outputZ;
 }
 
 QVector<QVector2D*> profileProcessor::profileToXY()
 {
 	QVector<QVector2D*> coordinates;
-	float s = 0;
-	qDebug() << "input profile OK";
-	qDebug() << "profile size" << m_inputProfile->size();
-
 	QVector2D intercept;
-	//gets generatrix x position on profiles
+	float s = 0; //curvilinear abscissa
+
+	//gets generatrix x position on profiles, if it exists
 	for (int j = 0; j < m_inputGeneratrix->size() - 1; j++)
 	{
 		for (int i = 0; i < m_inputProfile->size() - 1; i++)
@@ -41,22 +64,20 @@ QVector<QVector2D*> profileProcessor::profileToXY()
 				m_inputProfile->getPoint(i)->y);
 			QVector2D profEnd = QVector2D(m_inputProfile->getPoint(i+1)->x, 
 				m_inputProfile->getPoint(i + 1)->y);
-			intercept = getIntersection(genStart, genEnd, profStart, profEnd);
 
-			//qDebug() << "intercept" << (double) intercept.x() << (double) intercept.y();
-			//if (intercept.x() != 0) qDebug() << "true";
+			intercept = getIntersection(genStart, genEnd, profStart, profEnd);
 
 			if (intercept.x() + 0.01 * intercept.x() < m_inputProfile->getPoint(i)->x
 				|| intercept.x() - 0.01 * intercept.x() < m_inputProfile->getPoint(i)->x)
 			{
 				m_genPtIdx = i;
-				break;
+				break; //to save time/memory, no need to continue looping after finding the intercept
 			}
 		}
-		qDebug() << "print gen idx" << m_genPtIdx;
-		if (m_genPtIdx != 0) break;
+		if (m_genPtIdx != 0) break; //idem
 	}
 	
+	//(x,y,z) -> (s,z) conversion
 	for (int i = 0; i < m_inputProfile->size()-1; i++) 
 	{
 		const CCVector3* A = m_inputProfile->getPoint(i);
@@ -80,16 +101,14 @@ QVector<QVector2D*> profileProcessor::profileToXY()
 		}
 	}
 
-	qDebug() << "coordinates size" << coordinates.size();
-	qDebug() << "coordinates OK";
 	return coordinates;
 }
 
 ccPolyline* profileProcessor::segmentToProfile(std::vector<SegmentLinearRegression*> segments)
 {
-	qDebug() << "nb of profile points" << m_inputProfilePts.size();
-
-	QString name = QString("Vertices (Profile ID #%1)").arg(m_profileID);
+	//creates the output point cloud
+	QString name = QString("Vertices (Profile ID #%1, P=%2)").arg(m_profileID)
+		.arg(segments[0]->getAssociatedP());
 	m_outputCloud = new ccPointCloud(name.toStdString().c_str()); 
 	m_outputCloud->reserve(m_inputProfilePts.size());
 
@@ -98,17 +117,22 @@ ccPolyline* profileProcessor::segmentToProfile(std::vector<SegmentLinearRegressi
 	//const char* c_defaultSFName = name.toStdString().c_str();
 
 	const char c_defaultSFName[] = "Segmentation";
-	int sfIdx = m_outputCloud->getScalarFieldIndexByName(c_defaultSFName);
+	int sfIdx = m_outputCloud->getScalarFieldIndexByName(c_defaultSFName); 
+	//can't use name here, not const
+
 	if (sfIdx < 0)
 		sfIdx = m_outputCloud->addScalarField(c_defaultSFName);
-	m_outputCloud->getScalarField(sfIdx)->reserve(m_inputProfilePts.size());
+	m_outputCloud->getScalarField(sfIdx)->reserve(m_inputProfilePts.size()); 
+	//! scalar field size HAS TO EQUAL point cloud size
 	m_outputCloud->setCurrentScalarField(sfIdx);
 
 	ScalarType color;
 	for (int i = 0; i < segments.size(); i++)
 	{
 		m_inputSegment = segments[i];
-		m_inputSegment->setUniqueSharedID(m_profileID);
+		m_inputSegment->setUniqueSharedID(m_profileID); //for later use
+		m_inputSegment->setTransectPosition(m_genPtIdx); //for later use
+
 		int start = m_inputSegment->getStartIndex();
 		int end = m_inputSegment->getEndIndex();
 
@@ -116,6 +140,7 @@ ccPolyline* profileProcessor::segmentToProfile(std::vector<SegmentLinearRegressi
 
 		color = m_inputSegment->getColor().x();
 
+		//(s,z) -> (x,y,z) conversion
 		for (int i = start; i < end; i++)
 		{
 			m_outputCloud->addPoint(CCVector3(m_inputProfilePts[i]->x,
@@ -126,6 +151,7 @@ ccPolyline* profileProcessor::segmentToProfile(std::vector<SegmentLinearRegressi
 				//assigns one predefined color to generatrix position
 			}
 			else m_outputCloud->getScalarField(sfIdx)->addElement(color);
+			//assigns one color per segment
 		}
 	}
 
@@ -134,32 +160,30 @@ ccPolyline* profileProcessor::segmentToProfile(std::vector<SegmentLinearRegressi
 		m_inputProfilePts[m_inputProfilePts.size()-1]->y, 
 		m_inputProfilePts[m_inputProfilePts.size()-1]->z));
 
-	//m_outputCloud->shrinkToFit();
-	//m_outputCloud->getScalarField(sfIdx)->reserve(m_outputCloud->size());
+	//! scalar field size HAS TO BE EQUAL TO point cloud size, if not => it crashes here
 
+	//manually adding last color
 	m_outputCloud->getScalarField(sfIdx)->addElement(
 		m_outputCloud->getPointScalarValue(m_inputProfilePts.size() - 2)); //last color
-		
-	qDebug() << "point cloud size" << m_outputCloud->size();
 
+	//setting point cloud parameters
 	m_outputCloud->setCurrentScalarField(sfIdx);
 	m_outputCloud->getScalarField(sfIdx)->computeMinAndMax();
 	m_outputCloud->setCurrentDisplayedScalarField(sfIdx);
 	m_outputCloud->showSF(true);
 	m_outputCloud->setPointSize(5);
 
+	//creating the output polyline; gets same ID as initial polyline
 	m_outputProfile = new ccPolyline(m_outputCloud, m_profileID);
 
+	//setting polyline parameters here
 	m_outputProfile->setForeground(true);
 	m_outputProfile->set2DMode(false);
 	m_outputProfile->reserve(m_inputProfilePts.size());
 	m_outputProfile->addPointIndex(0, m_inputProfilePts.size());
-	m_outputProfile->setWidth(5);
+	m_outputProfile->setWidth(1);
 	m_outputProfile->addChild(m_outputCloud);
 
-	qDebug() << "polyline size" << m_outputProfile->size();
-
-	qDebug() << "segment conversion OK";
 	return m_outputProfile;
 }
 
@@ -167,8 +191,8 @@ ccPolyline* profileProcessor::segmentToProfile(std::vector<SegmentLinearRegressi
 //gets intersection between two segments, caracterized by two points each (start & end)
 QVector2D profileProcessor::getIntersection(QVector2D p1, QVector2D p2, QVector2D q1, QVector2D q2)
 {
-	QVector2D s1, s2, i;
-	float s, t;
+	QVector2D s1, s2, i; // s1 & s2 sums, i intercept
+	float s, t; // parameters, in[0, 1]; example, with t : r(t) = (1-t) * p1 + t * p2
 	s1 = p2 - p1;
 	s2 = q2 - q1;
 
@@ -186,16 +210,13 @@ QVector2D profileProcessor::getIntersection(QVector2D p1, QVector2D p2, QVector2
 			(-s2.x() * s1.y() + s1.x() * s2.y())) == isDenomPositive))
 		i = QVector2D(0, 0); // No collision
 
-
+	// s & t in [0, 1]
 	s = (-s1.y() * (p1.x() - q1.x()) + s1.x() * (p1.y() - q1.y())) / 
 		(-s2.x() * s1.y() + s1.x() * s2.y());
 	t = (s2.x() * (p1.y() - q1.y()) - s2.y() * (p1.x() - q1.x())) / 
 		(-s2.x() * s1.y() + s1.x() * s2.y());
 
-	//qDebug() << "s" << s << "t" << t;
-	//qDebug() << "s1" << s1.x() << "s2" << s2.x();
-
-	if (t >= 0 && t <= 1) i = QVector2D(p1.x() + (t * s1.x()), p1.y() + (t * s1.y()));
+	if (t >= 0 && t <= 1) i = QVector2D(p1.x() + (t * s1.x()), p1.y() + (t * s1.y())); //collision
 	else i = QVector2D(0, 0); // No collision
 
 	return i;
@@ -203,13 +224,7 @@ QVector2D profileProcessor::getIntersection(QVector2D p1, QVector2D p2, QVector2
 
 int profileProcessor::getProfileID()
 {
-	//qDebug() << "id" << m_profileID;
 	return m_profileID;
 }
 
-int profileProcessor::getTransectPos()
-{
-	if (m_genPtIdx < 0) m_genPtIdx = 0;
-	return m_genPtIdx;
-}
 
