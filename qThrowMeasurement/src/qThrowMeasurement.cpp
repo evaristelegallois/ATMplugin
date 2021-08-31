@@ -45,7 +45,7 @@
 //qATM
 #include "qThrowMeasurement.h"
 #include "ccMainAppInterface.h"
-#include "qatmselectentitiesdlg.h"
+#include "atmselectentitiesdlg.h"
 #include "atmdisplayprofilesdlg.h"
 
 //Qt
@@ -149,7 +149,6 @@ void qThrowMeasurement::computeThrowMeasurement2D()
 	if (!m_atmDlg->exec())
 		return; //cancellation by user
 
-	ccLog::Print(QString("[qATM] Computation has ended.")); //before
 }
 
 ////3D FUNCTIONNALITY
@@ -210,7 +209,7 @@ void qThrowMeasurement::computeThrowMeasurement3D()
 	ccPointCloud* cloud;
 	if (!clouds.empty())
 	{
-		int index = qATMSelectEntitiesDlg::SelectEntity(clouds);
+		int index = ATMSelectEntitiesDlg::SelectEntity(clouds);
 		m_cloud = static_cast<ccPointCloud*>(clouds[index]);
 	}
 	else ccLog::Error("No point cloud in DB!");

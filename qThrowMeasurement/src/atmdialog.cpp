@@ -19,7 +19,7 @@
 #include "ui_atmdialog.h"
 
 #include "qThrowMeasurement.h"
-#include "qatmselectentitiesdlg.h"
+#include "atmselectentitiesdlg.h"
 #include "atmdisplayprofilesdlg.h"
 
 //FracDense plug-in
@@ -35,6 +35,7 @@
 
 //qCC_db
 #include <ccPolyline.h>
+#include <ccProgressDialog.h>
 
 //Qt
 #include <QSettings>
@@ -151,6 +152,8 @@ QChart* ATMDialog::createLineChart(float* data, int* id, int n) const
 
 void ATMDialog::computeSegmentation()
 {
+	ccLog::Print(QString("[qATM] Computation in progress..."));
+
 	//// segmentation parameters initialization 
 	// break-point value p, jumps = 1 if discontinuity between segments is allowed, else 0
 	// var or r² scoring function, dip angle alpha (if known), and generatrix (transect)
@@ -169,6 +172,8 @@ void ATMDialog::computeSegmentation()
 		return;
 	}
 
+	//ccLog::Print(QString("[qATM] Computation in progress... 10%"));
+
 	//allocate memory for inputs/outputs
 	std::vector<QVector<QVector2D*>> inputs;
 	inputs.reserve(m_profiles.size());
@@ -183,6 +188,8 @@ void ATMDialog::computeSegmentation()
 		m_processors.push_back(new profileProcessor(m_profiles[i], m_generatrix));
 		inputs.push_back(m_processors[i]->profileToXY());
 	}
+
+	//ccLog::Print(QString("[qATM] Computation in progress... 30%"));
 
 	for (int i = 0; i < m_profiles.size(); i++)
 	{
@@ -204,14 +211,20 @@ void ATMDialog::computeSegmentation()
 		m_segmentList.push_back(m_segments);
 
 		outputs.push_back(m_processors[i]->segmentToProfile(m_segments)); 
-		//m_transectPos.push_back(m_processors[i]->getTransectPos());
 
 		m_app->addToDB(outputs[i]); //displays outputs
 	}
 
+	//ccLog::Print(QString("[qATM] Computation in progress... 70%"));
+
 	//compute displacement
+	//! don't compute twice! only first p value will be used
+	//! can't seem to find a workaround...
 	computeThrowMeasurement();
 	m_app->redrawAll();
+
+	//ccLog::Print(QString("[qATM] Computation in progress... 100%"));
+	ccLog::Print(QString("[qATM] Computation has ended."));
 
 	//release memory
 	m_processors.clear();
@@ -359,7 +372,7 @@ void ATMDialog::computeThrowMeasurement()
 				xVal.push_back(static_cast<double> (currentProfile[j]->getPoint(0)->x()));
 				yVal.push_back(static_cast<double> (currentProfile[j]->getPoint(0)->y()));
 
-				for (int k = 1; k < currentProfile[j]->getSize() + s_jumps; k++)
+				for (int k = 1; k < currentProfile[j]->getSize(); k++)
 				{
 					//end of segment[i] = start of segment[i+1] if jumps = 0
 					//to avoid overlapping, we don't add the same value twice
@@ -616,7 +629,7 @@ void ATMDialog::importGeneratrixFromDB()
 
 	if (!polylines.empty())
 	{
-		int index = qATMSelectEntitiesDlg::SelectEntity(polylines);
+		int index = ATMSelectEntitiesDlg::SelectEntity(polylines);
 		//gets the generatrix from DB
 		m_generatrix = static_cast<ccPolyline*>(polylines[index]);
 		this->genName->setText(polylines[index]->getName());

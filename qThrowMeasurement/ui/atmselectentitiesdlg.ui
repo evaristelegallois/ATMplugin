@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>qATMSelectEntitiesDlg</class>
- <widget class="QDialog" name="qATMSelectEntitiesDlg">
+ <class>ATMSelectEntitiesDlg</class>
+ <widget class="QDialog" name="ATMSelectEntitiesDlg">
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>Dialog</string>
+   <string>Generatrix selection</string>
   </property>
   <layout class="QGridLayout" name="gridLayout">
    <item row="0" column="0">
@@ -58,7 +58,7 @@
   <connection>
    <sender>buttonBox</sender>
    <signal>accepted()</signal>
-   <receiver>qATMSelectEntitiesDlg</receiver>
+   <receiver>ATMSelectEntitiesDlg</receiver>
    <slot>accept()</slot>
    <hints>
     <hint type="sourcelabel">
@@ -74,7 +74,7 @@
   <connection>
    <sender>buttonBox</sender>
    <signal>rejected()</signal>
-   <receiver>qATMSelectEntitiesDlg</receiver>
+   <receiver>ATMSelectEntitiesDlg</receiver>
    <slot>reject()</slot>
    <hints>
     <hint type="sourcelabel">

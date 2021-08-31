@@ -53,7 +53,7 @@ public:
     /// </summary>
     /// <param name="segment">Selected segment</param>
     profileProcessor(SegmentLinearRegression* segment);
-    ~profileProcessor();
+    //~profileProcessor();
 
     /// <summary>
     /// polyline (x,y,z) -> (x',y') coordinates conversion; each (x,y) point is stored as a 

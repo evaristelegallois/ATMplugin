@@ -18,7 +18,7 @@
 #include "atmdisplayprofilesdlg.h"
 #include "ui_atmdisplayprofilesdlg.h"
 
-#include "qatmselectentitiesdlg.h"
+#include "atmselectentitiesdlg.h"
 
 //qCC_plugins
 #include "ccMainAppInterface.h"
@@ -42,6 +42,7 @@ ATMDisplayProfilesDlg::ATMDisplayProfilesDlg(std::vector<std::vector<SegmentLine
 {
     setupUi(this);
 
+	//connecting signals to relevant slots
 	connect(saveAsTxtBtn, &QPushButton::released, this, &ATMDisplayProfilesDlg::exportDataAsTxt);
 	connect(saveAllAsTxtBtn, &QPushButton::released, this, &ATMDisplayProfilesDlg::exportAllDataAsTxt);
 	connect(saveAsImgBtn, &QPushButton::released, this, &ATMDisplayProfilesDlg::exportDataAsImg);
@@ -52,6 +53,7 @@ ATMDisplayProfilesDlg::ATMDisplayProfilesDlg(std::vector<std::vector<SegmentLine
 
 	this->setModal(false);
 
+	//setting the items' list
 	QStringList items;
 	for (size_t i = 0; i < m_entities.size(); ++i)
 	{
@@ -60,6 +62,7 @@ ATMDisplayProfilesDlg::ATMDisplayProfilesDlg(std::vector<std::vector<SegmentLine
 	}
 	this->setItems(items, 0);
 
+	//initializing the chartview
 	m_chartView = new QChartView();
 	baseLayout->addWidget(m_chartView, 1, 2);
 
@@ -71,22 +74,39 @@ ATMDisplayProfilesDlg::ATMDisplayProfilesDlg(std::vector<std::vector<SegmentLine
 	}
 }
 
-//LINE CHART FOR SEGMENTATION & clustering RESULTS
+ATMDisplayProfilesDlg::~ATMDisplayProfilesDlg()
+{
+	m_startIdx.clear();
+	m_startIdx.shrink_to_fit();
+	m_endIdx.clear();
+	m_endIdx.shrink_to_fit();
+	m_entities.clear();
+	m_entities.shrink_to_fit();
+	
+	delete m_chartView;
+	delete m_chart;
+}
+
+
+//this function might be improved greatly by using different functions for clustering/segmentation/generatrix display
 QChart* ATMDisplayProfilesDlg::createLineChart(float* x, float* y, int n) const
 {
+	//creating the chart
 	QChart* chart = new QChart();
-	chart->setTitle(QString("Scarp height (in m) relative to curvilinear abscissa (Profile ID#%1, segmentation parameter p=%2)")
+	chart->setTitle(QString("Scarp height (in m) relative to curvilinear abscissa (Profile ID#%1, p=%2)")
 		.arg(m_entities[getSelectedIndex()][0]->getUniqueSharedID()).arg(m_entities[getSelectedIndex()][0]->getAssociatedP()));
-	QLineSeries* series = new QLineSeries(chart);
 
-	QScatterSeries* clusterPos = new QScatterSeries(chart);
+	//creating the relevant series
+	QLineSeries* series = new QLineSeries(chart); //profile coordinates
+
+	QScatterSeries* clusterPos = new QScatterSeries(chart); //cluster position
 	clusterPos->setMarkerShape(QScatterSeries::MarkerShapeCircle);
 	clusterPos->setColor(QColor(0, 255, 0));
 	clusterPos->setBorderColor(QColor(0, 255, 0));
 	clusterPos->setMarkerSize(5.0);
 
-	std::vector<QLineSeries*> segmentPos;
-	//for (int i = 0; i < m_sStartIdx[getSelectedIndex()].size(); i++)
+	std::vector<QLineSeries*> segmentPos; //segmentation results
+	//adding a serie per segment (colors can't be changed inside one serie alone)
 	for (int i = 0; i < m_entities[getSelectedIndex()].size(); i++)
 	{
 		QLineSeries* serie = new QLineSeries(chart);
@@ -98,21 +118,23 @@ QChart* ATMDisplayProfilesDlg::createLineChart(float* x, float* y, int n) const
 		segmentPos[i]->setPen(pen);
 	}
 
-	QScatterSeries* transectPos = new QScatterSeries(chart);
+	QScatterSeries* transectPos = new QScatterSeries(chart); //generatrix position
 	transectPos->setMarkerShape(QScatterSeries::MarkerShapeCircle);
 	transectPos->setColor(QColor(255,0,0));
 	transectPos->setMarkerSize(10.0);
 
+	//creating the axes
 	QValueAxis* axisX = new QValueAxis;
 	QValueAxis* axisY = new QValueAxis;
 	axisX->setTitleText("Curvilinear abscissa");
 	axisY->setTitleText("Height (m)");
 
-	for (int i = 0; i < n; i++) series->append(x[i], y[i]);
+	//filling out the series with correpsonding values
+	for (int i = 0; i < n; i++) series->append(x[i], y[i]); 
 	chart->legend()->hide();
 	chart->addSeries(series);
 
-	if (clusterCheckBox->isChecked())
+	if (clusterCheckBox->isChecked()) //displays clustering data
 	{
 		for (int j = 0; j < m_startIdx[getSelectedIndex()].size(); j++)
 		{
@@ -122,22 +144,16 @@ QChart* ATMDisplayProfilesDlg::createLineChart(float* x, float* y, int n) const
 		chart->addSeries(clusterPos);
 	}
 	else {
-		/*for (int j = 0; j < m_sStartIdx[getSelectedIndex()].size(); j++)
+		for (int j = 0; j < m_entities[getSelectedIndex()].size(); j++) //displays segmentation data
 		{
-			for (int k = m_sStartIdx[getSelectedIndex()][j]; k <= m_sEndIdx[getSelectedIndex()][j]; k++)
-				segmentPos[j]->append(x[k], y[k]);
-			chart->addSeries(segmentPos[j]);
-		}*/
-
-		for (int j = 0; j < m_entities[getSelectedIndex()].size(); j++)
-		{
-			for (int k = m_entities[getSelectedIndex()][j]->getStartIndex(); k <= m_entities[getSelectedIndex()][j]->getEndIndex(); k++)
+			for (int k = m_entities[getSelectedIndex()][j]->getStartIndex(); k <= 
+				m_entities[getSelectedIndex()][j]->getEndIndex(); k++)
 				segmentPos[j]->append(x[k], y[k]);
 			chart->addSeries(segmentPos[j]);
 		}
 	}
 
-	if (genCheckBox->isChecked())
+	if (genCheckBox->isChecked()) //display generatrix position
 	{
 		if (m_entities[getSelectedIndex()][0]->getTransectPosition() == 0) transectPos->append(-1, -1);
 		else transectPos->append(x[m_entities[getSelectedIndex()][0]->getTransectPosition()],
@@ -145,10 +161,13 @@ QChart* ATMDisplayProfilesDlg::createLineChart(float* x, float* y, int n) const
 		chart->addSeries(transectPos);
 	}
 
+	//adding axes to the chart + attaching axes to series
 	chart->addAxis(axisX, Qt::AlignBottom);
 	chart->addAxis(axisY, Qt::AlignLeft);
 	series->attachAxis(axisX);
 	series->attachAxis(axisY);
+
+	//no need to attach axes if results are not displayed
 	if (clusterCheckBox->isChecked())
 	{
 		clusterPos->attachAxis(axisX);
@@ -167,8 +186,6 @@ QChart* ATMDisplayProfilesDlg::createLineChart(float* x, float* y, int n) const
 		transectPos->attachAxis(axisY);
 	}
 
-
-	//chart->createDefaultAxes();
 	return chart;
 }
 
@@ -178,8 +195,6 @@ void ATMDisplayProfilesDlg::displayChart()
 	m_chartView->update();
 }
 
-//LIST ISNT CLEARED SO NEED TO ADD UNIQUE ID AND P IN CASE PEOPLE WANT TO COMPARE 
-//BETWEEN SEGMENTATION RESULTS
 void ATMDisplayProfilesDlg::displayProfile(int selectedIndex/*=0*/,
 	QWidget* parent/*=0*/)
 {
@@ -202,10 +217,12 @@ void ATMDisplayProfilesDlg::displayProfile(int selectedIndex/*=0*/,
 			}
 		}
 		
+		//displays selected profile
 		m_chart = createLineChart(x, y, size);
 		m_chartView->setChart(m_chart);
 		m_chartView->update();
-		//m_charts << m_chartView;
+
+		//releasing memory
 		delete[] x;
 		delete[] y;
 }
@@ -214,7 +231,7 @@ int ATMDisplayProfilesDlg::getSelectedIndex() const
 {
 	//get selected items
 	QList<QListWidgetItem*> list = profileList->selectedItems();
-	if (list.isEmpty()) return -1; //display error message
+	if (list.isEmpty()) ccLog::Error("Selected entities not found!");
 
 	else if (profileList->currentRow() == -1) return 0;
 	else return profileList->currentRow();
@@ -396,7 +413,9 @@ void ATMDisplayProfilesDlg::exportAllDataAsTxt()
 
 void ATMDisplayProfilesDlg::exportDataAsImg()
 {
-	QString path = QString("/profile#%1_segmentationData.png").arg(getSelectedIndex());
+	QString path;
+	if (clusterCheckBox->isChecked()) path = QString("/profile#%1_segmentationData.png").arg(getSelectedIndex());
+	else path = QString("/profile#%1_clusteringData.png").arg(getSelectedIndex());
 	QString outputFilename = QFileDialog::getSaveFileName(this, "Select destination", path, tr("Images(*.png)"));
 
 	if (outputFilename.isEmpty())

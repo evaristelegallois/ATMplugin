@@ -31,6 +31,7 @@ profileProcessor::profileProcessor(ccPolyline* profile, ccPolyline* generatrix) 
 	m_profileID = m_inputProfile->getUniqueIDForDisplay();
 }
 
+/*
 profileProcessor::~profileProcessor()
 {
 	delete[] m_inputGeneratrix;
@@ -44,6 +45,7 @@ profileProcessor::~profileProcessor()
 	delete[] m_outputY;
 	delete[] m_outputZ;
 }
+*/
 
 QVector<QVector2D*> profileProcessor::profileToXY()
 {
