@@ -5,24 +5,16 @@
 	"description": "qThrowMeasurement allows the user to automatically compute cumulative geological displacement by making multiple sections along a selected polyline and computing the throw measurment for each.",
 	"authors": [
 		{
-			"name": "Gabriel Parel",
-			"email": "gabriel.parel@etu.univ-amu.fr"
+			"name": "Gabriel Parel, Sophie Viseur",
+			"email": "gabriel.parel@etu.univ-amu.fr, viseur@cerege.fr"
 		}
 	],
 	"maintainers": [
 		{
-			"name": "Gabriel Parel",
-			"email": "gabriel.parel@etu.univ-amu.fr"
+			"name": "Gabriel Parel, Sophie Viseur",
+			"email": "gabriel.parel@etu.univ-amu.fr, viseur@cerege.fr"
 		}
 	],
 	"references": [
-		{
-			"text": "The unsuccessful self-treatment of a case of “writer's block”",
-			"url": "https://www.ncbi.nlm.nih.gov/pmc/articles/PMC1311997/"
-		},
-		{
-			"text": "Sword swallowing and its side effects",
-			"url": "http://www.bmj.com/content/333/7582/1285"
-		}
 	]
 }

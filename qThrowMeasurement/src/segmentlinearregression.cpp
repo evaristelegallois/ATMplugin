@@ -1,8 +1,25 @@
+//##########################################################################
+//#                                                                        #
+//#                    CLOUDCOMPARE PLUGIN: ATMPlugin                      #
+//#                                                                        #
+//#  This program is free software; you can redistribute it and/or modify  #
+//#  it under the terms of the GNU General Public License as published by  #
+//#  the Free Software Foundation; version 2 of the License.               #
+//#                                                                        #
+//#  This program is distributed in the hope that it will be useful,       #
+//#  but WITHOUT ANY WARRANTY; without even the implied warranty of        #
+//#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         #
+//#  GNU General Public License for more details.                          #
+//#                                                                        #
+//#                      COPYRIGHT: Gabriel Parel                          #
+//#                                                                        #
+//##########################################################################
+
 #include "segmentlinearregression.h"
-#include <QDebug>
 
 SegmentLinearRegression::SegmentLinearRegression(int startInd, int endInd, float* x, float* y) :
-	m_startInd(startInd), m_endInd(endInd)
+	m_startInd(startInd), m_endInd(endInd),
+	m_id(-1), m_p(-1), m_transectPos(-1)
 {
 	m_size = endInd - startInd + 1;
 
@@ -15,6 +32,7 @@ SegmentLinearRegression::~SegmentLinearRegression()
 	m_points.clear();
 }
 
+//! getters
 float SegmentLinearRegression::getVar()
 {
 	return m_var;
@@ -80,12 +98,18 @@ int SegmentLinearRegression::getUniqueSharedID()
 	return m_id;
 }
 
+int SegmentLinearRegression::getTransectPosition()
+{
+	if (m_transectPos < 0) m_transectPos = 0;
+	return m_transectPos;
+}
+
 QVector3D SegmentLinearRegression::getColor()
 {
 	return m_color;
 }
 
-
+//! setters
 void SegmentLinearRegression::setVar(float var)
 {
 	m_var = var;
@@ -111,17 +135,6 @@ void SegmentLinearRegression::setIntercept(float intercept)
 	m_b = intercept;
 }
 
-/*void SegmentLinearRegression::setStart(QVector2D start)
-{
-	m_start = start;
-}
-
-void SegmentLinearRegression::setEnd(QVector2D end)
-{
-	m_end = end;
-}
-*/
-
 void SegmentLinearRegression::setStartIndex(int startInd)
 {
 	m_startInd = startInd;
@@ -140,6 +153,11 @@ void SegmentLinearRegression::setAssociatedP(float p)
 void SegmentLinearRegression::setUniqueSharedID(int id)
 {
 	m_id = id;
+}
+
+void SegmentLinearRegression::setTransectPosition(int idx)
+{
+	m_transectPos = idx;
 }
 
 void SegmentLinearRegression::setColor(QVector3D color)

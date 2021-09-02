@@ -1,6 +1,6 @@
 //##########################################################################
 //#                                                                        #
-//#                CLOUDCOMPARE PLUGIN: ATMPlugin                          #
+//#                    CLOUDCOMPARE PLUGIN: ATMPlugin                      #
 //#                                                                        #
 //#  This program is free software; you can redistribute it and/or modify  #
 //#  it under the terms of the GNU General Public License as published by  #
@@ -11,7 +11,7 @@
 //#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         #
 //#  GNU General Public License for more details.                          #
 //#                                                                        #
-//#                    COPYRIGHT: Gabriel Parel                            #
+//#                COPYRIGHT: Gabriel Parel, Sophie Viseur                 #
 //#                                                                        #
 //##########################################################################
 
@@ -45,7 +45,7 @@
 //qATM
 #include "qThrowMeasurement.h"
 #include "ccMainAppInterface.h"
-#include "qatmselectentitiesdlg.h"
+#include "atmselectentitiesdlg.h"
 #include "atmdisplayprofilesdlg.h"
 
 //Qt
@@ -61,8 +61,6 @@
 
 using namespace CCCoreLib;
 
-static double m_radius = 5.0;
-
 // Default constructor
 qThrowMeasurement::qThrowMeasurement( QObject *parent )
 	: QObject( parent )
@@ -72,6 +70,8 @@ qThrowMeasurement::qThrowMeasurement( QObject *parent )
 	, m_associatedWin (nullptr)
 	, m_mainAppInterface (nullptr)
 	, m_atmDlg(nullptr)
+	, m_radius (20.0) //temporary; to be replaced by user input
+	, m_cloud (nullptr)
 {
 }
 
@@ -80,8 +80,8 @@ qThrowMeasurement::qThrowMeasurement( QObject *parent )
 void qThrowMeasurement::onNewSelection( const ccHObject::Container &selectedEntities )
 {
 	if (m_computeThrowMeasurement)
-		m_computeThrowMeasurement->setEnabled(selectedEntities.size() >= 1 && 
-			(selectedEntities.back()->isA(CC_TYPES::HIERARCHY_OBJECT) || selectedEntities.back()->isA(CC_TYPES::POLY_LINE)));
+		m_computeThrowMeasurement->setEnabled(selectedEntities.size() >= 1 &&
+			selectedEntities.back()->isA(CC_TYPES::POLY_LINE));
 	
 	if (m_computeAngularDifference)
 		m_computeAngularDifference->setEnabled(selectedEntities.size() == 1 && 
@@ -95,20 +95,20 @@ QList<QAction *> qThrowMeasurement::getActions()
 	// default action (if it has not been already created, this is the moment to do it)
 	if (!m_computeThrowMeasurement)
 	{
-		m_computeThrowMeasurement = new QAction("Throw", this );
+		m_computeThrowMeasurement = new QAction("Automatic Throw Measurement (2D)", this );
 		m_computeThrowMeasurement->setToolTip( "" );
 		m_computeThrowMeasurement->setIcon(QIcon(QString::fromUtf8(":/CC/plugin/qThrowMeasurement/img/angularDiff.png")));
 		// Connect appropriate signal
-		connect(m_computeThrowMeasurement, &QAction::triggered, this, &qThrowMeasurement::computeThrowMeasurement);
+		connect(m_computeThrowMeasurement, &QAction::triggered, this, &qThrowMeasurement::computeThrowMeasurement2D);
 	}
 
 	if (!m_computeAngularDifference)
 	{
-		m_computeAngularDifference = new QAction("Angle", this);
+		m_computeAngularDifference = new QAction("Automatic Throw Measurement (3D)", this);
 		m_computeAngularDifference->setToolTip("");
 		m_computeAngularDifference->setIcon(QIcon(QString::fromUtf8(":/CC/plugin/qThrowMeasurement/img/angularDiff.png")));
 		// Connect appropriate signal
-		connect(m_computeAngularDifference, &QAction::triggered, this, &qThrowMeasurement::compute);
+		connect(m_computeAngularDifference, &QAction::triggered, this, &qThrowMeasurement::computeThrowMeasurement3D);
 	}
 
 	return QList<QAction*>{
@@ -118,39 +118,37 @@ QList<QAction *> qThrowMeasurement::getActions()
 }
 
 ////2D FUNCTIONNALITY
-void qThrowMeasurement::computeThrowMeasurement()
+void qThrowMeasurement::computeThrowMeasurement2D()
 {
+	//get the selected entities
 	const int size = m_app->getSelectedEntities().size();
-	std::vector<ccPolyline*> profiles;
+	std::vector<ccPolyline*> profiles; //inputs
 	profiles.reserve(size);
 
 	for (int i = 0; i < m_app->getSelectedEntities().size(); i++)
 	{
-		qDebug() << "nb of selected entities" << m_app->getSelectedEntities().size();
 		if (m_app->getSelectedEntities()[i]->isA(CC_TYPES::POLY_LINE))
 		{
 			ccPolyline * polyline = ccHObjectCaster::ToPolyline(m_app->getSelectedEntities()[i]);
 			profiles.push_back(polyline);
 		}
-		qDebug() << "nb of selected entities from poly" << profiles.size();
-
 	}
-	qDebug() << "start segmentation";
+
+	ccLog::Print(QString("[qATM] Computation has started."));
 
 	assert(m_app);
 	if (!m_app)
 		return;
 
+	//opens the 2D plug-in main dialog
 	m_atmDlg = new ATMDialog(m_app, profiles);
 	m_atmDlg->setModal(false);
 
+	//process dialog here!!!!!!
+
 	if (!m_atmDlg->exec())
-		return;
+		return; //cancellation by user
 
-	//m_atmDlg->computeSegmentation();
-
-	//computeSegmentation(profiles);
-	qDebug() << "end segmentation";
 }
 
 ////3D FUNCTIONNALITY
@@ -174,16 +172,9 @@ ScalarType qThrowMeasurement::getAngleFromVerticality(ccPointCloud* cloud)
 		qDebug() << "No cloud selected!";
 	}
 
-	//ccFacet* facet = ccFacet::Create(cloud, static_cast<PointCoordinateType>(10), true);
-
-	//qDebug() << "nb sf" << cloud->getNumberOfScalarFields();
-
-	//computes verticality specifically, with a neighbouring sphere radius of 20
+	//computes verticality specifically, with a neighbouring sphere radius of m_radius
 	GeometricalAnalysisTools::ComputeCharactersitic(
 		static_cast<GeometricalAnalysisTools::GeomCharacteristic>(0), 10, cloud, m_radius);
-	//qDebug() << "cloud in getAngle" << cloud;
-
-	//qDebug() << "nb sf" << cloud->getNumberOfScalarFields();
 
 	for (int i = 0; i < cloud->size(); i++) {
 		double value = (cloud->getPointScalarValue(i));
@@ -193,19 +184,12 @@ ScalarType qThrowMeasurement::getAngleFromVerticality(ccPointCloud* cloud)
 	}
 
 	theta = sum / cloud->size();
-	//qDebug() << "sum" << sum << "size" << cloud->size(); //sum pas okay
 
 	return theta; //return scalar field instead
 }
 
-void qThrowMeasurement::compute()
+void qThrowMeasurement::computeThrowMeasurement3D()
 {
-	// TO PUT A THE BEGINING OF PLUGIN
-	/*assert(m_app);
-	if (!m_app)
-	return;*/
-
-
 	//we expect a facet group
 	const ccHObject::Container& selectedEntities = m_app->getSelectedEntities();
 	if (!m_app->haveOneSelection() || !selectedEntities.back()->isA(CC_TYPES::HIERARCHY_OBJECT))
@@ -225,42 +209,13 @@ void qThrowMeasurement::compute()
 	ccPointCloud* cloud;
 	if (!clouds.empty())
 	{
-		int index = qATMSelectEntitiesDlg::SelectEntity(clouds);
+		int index = ATMSelectEntitiesDlg::SelectEntity(clouds);
 		m_cloud = static_cast<ccPointCloud*>(clouds[index]);
 	}
-	else
-	{
-		ccLog::Error("No point cloud in DB!");
-	}
+	else ccLog::Error("No point cloud in DB!");
 
-	
 	std::vector<ccFacet*> FacetSet;
 	int size = 0;
-
-	/*
-	for (int i = 0; i < selectedEntities.size(); i++)
-	{
-		size += selectedEntities[i]->getChildrenNumber();
-		for (int j = 0; j < selectedEntities[i]->getChildrenNumber(); j++)
-		{
-			size += selectedEntities[i]->getChild(j)->getChildrenNumber();
-			for (int k = 0; k < selectedEntities[i]->getChild(j)->getChildrenNumber(); k++) 
-				size += selectedEntities[i]->getChild(j)->getChild(k)->getChildrenNumber();
-		}
-	}
-
-	FacetSet.reserve(size);
-
-	for (int i = 0; i < selectedEntities.size(); i++)
-	{
-		for (int j = 0; j < selectedEntities[i]->getChildrenNumber(); j++)
-		{
-			for (int k = 0; k < selectedEntities[i]->getChild(j)->getChildrenNumber(); k++) 
-				FacetSet.push_back(static_cast<ccFacet*> (selectedEntities[i]->getChild(j)->getChild(k)));
-		}
-	}
-	*/
-
 	for (int i = 0; i < selectedEntities.size(); i++)
 	{
 		size += selectedEntities[i]->getChildrenNumber();
@@ -285,34 +240,29 @@ PointCoordinateType qThrowMeasurement::ComputeHDistBetweenFacets(const ccFacet* 
 	return std::min(std::abs(AB.dot(f1->getNormal())), std::abs(AB.dot(f2->getNormal())));
 }
 
-
 void qThrowMeasurement::compareFacetsGroup(std::vector<ccFacet*> FacetSet)
 {
 	ScalarType *theta, theta1, theta2, deltaTheta;
 	theta = new ScalarType[m_cloud->size()];
 	int cloudSize = 0;
-	double minDist = 0;
-	double maxDist = 200;
-	double curDist = 0;
+	double minDist = 0.;
+	double maxDist = 200.;
+	double curDist = 0.;
 
+	//creating the point cloud
 	ccPointCloud* cloud = new ccPointCloud("Vertices");
 	cloud->reserve(m_cloud->size());
 	qDebug() << "cloud size" << m_cloud->size();
-	//qDebug() << "facet size" << FacetSet[0]->getOriginPoints();
 
-
-	//int index = cloud->getScalarFieldIndexByName("Verticality (" + QString::number(m_angle) + ")");
+	//creating the conrresponding scalar field
 	int sfIdx = cloud->getScalarFieldIndexByName("Angle");
 	if (sfIdx < 0)
 		sfIdx = cloud->addScalarField("Angle");
 	cloud->getScalarField(sfIdx)->reserve(m_cloud->size());
 	cloud->setCurrentScalarField(sfIdx);
-	//cloud->setCurrentOutScalarField(index);
-	//cloud->setCurrentInScalarField(index);
-	qDebug() << "sf ok";
 
+	//filling out the scalar field
 	for (int i = 0; i < FacetSet.size(); i++) {
-		//qDebug() << "facet size" << FacetSet[i]->getOriginPoints()->size();
 		cloud->append(FacetSet[i]->getOriginPoints(), cloudSize);
 		theta[i] = static_cast<double> (getAngleFromVerticality(FacetSet[i]->getOriginPoints())); //computes theta from verticality
 		cloudSize += FacetSet[i]->getOriginPoints()->size(); //not equal to cloud size??
@@ -326,21 +276,18 @@ void qThrowMeasurement::compareFacetsGroup(std::vector<ccFacet*> FacetSet)
 	{
 		for (int j = 0; j < FacetSet.size() - 1; j++)
 		{
+			//we restrain the computation to facets close to each other
 			curDist = abs(ComputeHDistBetweenFacets(FacetSet[i], FacetSet[j]));
 			if (curDist < maxDist)
 			{
-				//theta1 = getAngleFromVerticality(FacetSet[i]->getOriginPoints());
-				//theta2 = getAngleFromverticality(FacetSet[i + 1]->getOriginPoints());
 				deltaTheta = static_cast<double> (computeAngularDifference(theta[i], theta[j]));
 				cloud->setPointScalarValue(i, deltaTheta); //assigns value to each point
 				cloud->getScalarField(sfIdx)->addElement(deltaTheta);
-				//qDebug() << "delta theta" << deltaTheta;
 			}
 		}
 	}
 
 	qDebug() << "cloud ok";
-	//cloud->getScalarField(sfIdx)->computeMinAndMax();
 
 	cloud->setCurrentScalarField(sfIdx);
 	cloud->getScalarField(sfIdx)->computeMinAndMax();
@@ -349,6 +296,7 @@ void qThrowMeasurement::compareFacetsGroup(std::vector<ccFacet*> FacetSet)
 
 	m_app->addToDB(cloud);
 	m_app->redrawAll();
+	//only a part of the scalar field is displayed???
 
 	qDebug() << "compute ok";
 }
